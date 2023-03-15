@@ -12,7 +12,7 @@ repeat = 20                      # The number of times the replay signal will re
 interval = 0.5                  # The wait time before another packet will be sent
 
 [MONITOR]
-view_sample = false
+view_sample = true
 samples_to_collect = 500
 threshold = 2.0                 # The value a signal must be above to be considered a packet
 cutoff = 1000                    # The number of indexes before a packet will be considered ended.
@@ -23,6 +23,7 @@ max_loops = false              # The max number of times to collect signals
 min_packet_size = false        # The minimum number of indexes a packet must have to be kept
 
 [FILTER]
+apply_filter = false
 byte_size = false               #(int)
 seconds = false                 #(float)
 center_freq = false             #(float)

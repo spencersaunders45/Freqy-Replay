@@ -13,12 +13,7 @@ sys.path.insert(0, PYTHON_DIR)
 from helper_functions.plot_signal import plot_signal
 
 """
-TODO: Add name and size metadata to datasets
-TODO: Create new files based off the frequency the SDR is at
-    TODO: Every first dataset will be a counter (int) for naming files. Incremented every time a new dataset is added
 TODO: Add methods that allow you to update the metadata
-TODO: Add method that allow you to view all the dataset names in a file.
-TODO: Add method that allows you to see all the hdf5 files
 """
 
 
@@ -223,7 +218,7 @@ class HDF5Handler:
         for key in f.keys():
             print(f"\t{key}")
 
-    def get_all_files(self) -> list[str]:
+    def get_all_files(self) -> list:
         """ Gets a list of all .hdf5 file in the captured_signals dir
         
         Returns:
