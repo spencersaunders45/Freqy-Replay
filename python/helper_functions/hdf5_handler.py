@@ -101,7 +101,7 @@ class HDF5Handler:
             raise
 
     def plot_signal(self, file_name: str, dataset: str) -> None:
-        f: Group = h5py.File(f"{SIGNALS_DIR}{file_name}.hdf5", "r")
+        f: Group = h5py.File(f"{SIGNALS_DIR}{file_name}", "r")
         file_data = f[dataset]
         signal = file_data[:]
         threshold = file_data.attrs['threshold']
@@ -109,23 +109,59 @@ class HDF5Handler:
         f.close()
         plot_signal(signal, sample_rate, threshold)
 
-    def display_metadata(self, file_name: str) -> None:
+    def __filter_signals(self, dataset: dict, byte_size: int, seconds: float, center_freq: float, sample_rate: float):
+        if byte_size:
+            if dataset['signal_size_bytes'] >= byte_size:
+                return True
+        if seconds:
+            if dataset['signal_length_seconds'] >= seconds:
+                return True
+        if center_freq:
+            if dataset['center_frequency'] >= center_freq:
+                return True
+        if sample_rate:
+            if dataset['sample_rate'] >= sample_rate:
+                return True
+        return False
+
+    def display_metadata(
+        self,
+        file_name: str,
+        byte_size:int = None,
+        seconds: float = None,
+        center_freq: float = None,
+        sample_rate: float = None,
+        ) -> None:
         """Gets the metadata of a file.
 
         Arguments:
             file_name (str): The name of the HDF5 file.
         """
+        # Get all the dataset data from the file
         f: Group = h5py.File(f"{SIGNALS_DIR}{file_name}", "r")
+        dict_dataset = dict()
         for key in f.keys():
             dataset: Dataset = f[key]
-            print(f'\t{key}')
+            if key == 'counter':
+                continue
+            dict_dataset[key] = dict()
             for name, value in dataset.attrs.items():
-                if name == "signal_length_seconds":
-                    print(f"\t\t{name}: {value:.10f}")
-                else:
-                    print(f"\t\t{name}: {value}")
-            print()
+                dict_dataset[key][name] = value
         f.close()
+        # Filter and print the dataset data
+        if byte_size or seconds or center_freq or sample_rate:
+            for key in dict_dataset.keys():
+                if self.__filter_signals(dict_dataset[key], byte_size, seconds, center_freq, sample_rate):
+                    print(f'\t{key}')
+                    for attribute in dict_dataset[key].keys():
+                        print(f'\t\t{attribute}: {dict_dataset[key][attribute]}')
+                    print()
+        else:
+            for key in dict_dataset.keys():
+                print(f'\t{key}')
+                for attribute in dict_dataset[key].keys():
+                    print(f'\t\t{attribute}: {dict_dataset[key][attribute]}')
+                print()
 
     def display_all_files(self) -> None:
         """Displays all HDF5 files and their metadata"""
@@ -136,7 +172,6 @@ class HDF5Handler:
                 continue
             else:
                 print(file)
-                self.display_metadata(f"{file}")
 
     def view_datasets(self, file_name:str) -> None:
         """View all the datasets from a single file.

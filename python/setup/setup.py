@@ -34,7 +34,7 @@ PACKAGES = {
     "python3-setuptools",
     "python3-ruamel.yaml",
 }
-PYTHON_VERSION = "3.10"
+PYTHON_VERSION = "3.11"
 UHD_VERSION = "v4.3.0.0"
 SETUP_ENV_FILE = f"""
 LOCALPREFIX={USER_HOME}/uhd/install
@@ -227,8 +227,6 @@ def install_gqrx():
             ]
         )
 
-
-# ? install py_aff3ct
 
 if __name__ == "__main__":
     check_for_sudo()

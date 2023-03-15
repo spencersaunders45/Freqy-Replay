@@ -41,12 +41,15 @@ class Stream:
         self.tx_gain: int = self.toml_radio["tx_gain"]
         self.uhd_id: str = self.toml_radio["uhd_id"]
         # MONITOR
+        self.view_sample: float = self.toml_monitor["view_sample"]
+        self.samples_to_collect: float = self.toml_monitor["samples_to_collect"]
         self.threshold: float = self.toml_monitor["threshold"]
         self.cutoff: float = self.toml_monitor["cutoff"]
         self.packet_slack: int = self.toml_monitor["packet_slack"]
         self.queue_size: int = self.toml_monitor["queue_size"]
         self.file_name: int = self.toml_monitor["file_name"]
         self.max_loops: int = self.toml_monitor["max_loops"]
+
         # Queues
         self.stream_q = mp.Queue(self.queue_size)
         self.packet_queue = mp.Queue(self.queue_size)
@@ -61,13 +64,33 @@ class Stream:
 
     def launch(self) -> None:
         # signal.signal(signal.SIGINT, self.__sigint_handler)
-        packet_detect = PacketDetect(self.stream_q, self.threshold, self.cutoff, self.packet_queue, self.packet_slack, 1.5)
+        if self.view_sample:
+            self.view_signals()
+            exit(0)
+        packet_detect = PacketDetect(self.stream_q, self.threshold, self.cutoff, self.packet_queue, self.packet_slack)
         packet_saver = PacketSaver(self.file_name, self.packet_queue, self.hdf5, self.center_freq, self.sample_rate, self.threshold)
         packet_detect_p = mp.Process(target=packet_detect.start_packet_detect)
         packet_saver_p = mp.Process(target=packet_saver.start)
         packet_detect_p.start()
         packet_saver_p.start()
         self.stream_rx_data()
+
+    def view_signals(self) -> None:
+        self.sdr = SDR(self.sample_rate, self.center_freq, self.tx_gain, self.rx_gain)
+        signals = list()
+        for _ in range(self.samples_to_collect):
+            data = self.sdr.rx_data()
+            signals.append(data)
+        # Put the signal together
+        big_signal = np.zeros(10)
+        for signal in signals:
+            signal = signal.ravel()
+            signal = np.trim_zeros(signal)
+            if big_signal.all():
+                big_signal = signal
+            else:
+                big_signal = np.concatenate((big_signal, signal))
+        plot_signal(big_signal, self.sample_rate, self.threshold)
 
     def stream_rx_data(self) -> None:
         """Streams signals captured from the SDR"""

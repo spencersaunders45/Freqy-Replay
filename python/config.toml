@@ -1,24 +1,36 @@
 [RADIO]
-center_freq = 2400000000.0
+center_freq = 915000000.0
 sample_rate = 15000000.0
 rx_gain = 74
 tx_gain = 70
 uhd_id = "None"
 
 [ATTACK]
-file = "test"                   # The file name of the packet to be used is located
-dataset = "signal_1"            # The dataset name of the packet to be used
-repeat = 5                      # The number of times the replay signal will repeat
-interval = 1.0                  # The waittime before another packet will be sent
+file = "magpie-test2"                   # The file name of the packet to be used is located
+dataset = "signal9"            # The dataset name of the packet to be used
+repeat = 20                      # The number of times the replay signal will repeat
+interval = 0.5                  # The waittime before another packet will be sent
 
 [MONITOR]
-threshold = 0.6                 # The value a signal must be above to be considered a packet
-cutoff = 100                    # The number of indexes before a packet will be considered ended.
+view_sample = false
+samples_to_collect = 500
+threshold = 0.2                 # The value a signal must be above to be considered a packet
+cutoff = 1000                    # The number of indexes before a packet will be considered ended.
 packet_slack = 100              # The number of indexes that will be added to the beginning and ending of the discovered packet
 queue_size = 170                # The maximum size a queue can be
-file_name = "testy"             # The name of the file where packets are to be saved
-max_loops = "None"              # The max number of times to collect signals
-min_packet_size = "None"        # The minimun number of indexes a packet must have to be kept
+file_name = "magpie-test2"             # The name of the file where packets are to be saved
+max_loops = 5000              # The max number of times to collect signals
+min_packet_size = false        # The minimun number of indexes a packet must have to be kept
+
+[FILTER]
+byte_size = false
+seconds = false
+center_freq = false
+sample_rate = false
+
+[PLOT]
+file = "magpie-test2.hdf5"
+dataset = "signal9"
 
 
 
