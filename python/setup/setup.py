@@ -100,7 +100,26 @@ def clone_uhd() -> None:
     if not os.path.isdir(f"{FILE_PATH}/../../uhd"):
         # Clone the repo
         run_as_user(['git', 'clone', 'https://github.com/EttusResearch/uhd.git'], f'{FILE_PATH}/../../')
-    run_as_root(['git'])
+    # Checkout correct version of UHD
+    run_as_user(['git', 'checkout', UHD_VERSION])
+    # Update submodules
+    run_as_user(['git', 'submodule', 'update'])
+    # Check for build dir
+    if not os.path.isdir(f'{FILE_PATH}/../../uhd/host/build'):
+        run_as_user(['mkdir', f'{FILE_PATH}/../../uhd/host/build'])
+    # run Make file
+    working_dir: str = f'{FILE_PATH}/../../uhd/host/build/'
+    run_as_user(
+        [
+            'cmake',
+            '-DCMAKE_INSTALL_PREFIX=~/uhd/install',
+            f'DPYTHON_EECUTABLE=/usr/bin/python{PYTHON_VERSION}',
+            f'-DRUNTIME_PYTHON_EXECUTABLE=/usr/bin/python{PYTHON_VERSION}',
+            "../"
+        ],
+        working_dir
+    )
+    run_as_user(['make', f'--jobs={}'])
 
 
 def setup_uhd_env() -> None:
