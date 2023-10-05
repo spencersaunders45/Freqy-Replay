@@ -1,7 +1,15 @@
 import numpy as np
-import uhd
+from numpy.random import randint
 from time import sleep
-import traceback
+import os, sys, traceback
+
+FILE_DIR = os.path.dirname(os.path.realpath(__file__))
+LIB_PATH = f'/home/spinsir/uhd/install/local/lib/python3.10/dist-packages'
+ENV_PATH = os.environ['PATH']
+# Add uhd library to path
+os.environ['PATH'] = LIB_PATH + ':' + ENV_PATH
+
+import uhd
 
 class SDR:
     """ Sets up the USRP to be used. Also provided methods to TX and RX. """
@@ -103,3 +111,10 @@ class SDR:
         if self.rx_meta_data.error_code != uhd.types.RXMetadataErrorCode.none:
             print(f'error: {self.rx_meta_data.strerror()}')
         return self.recv_buffer
+
+if __name__ == "__main__":
+    sdr = SDR(15000000.0, 915000000.0, 70, 74, None)
+    sleep(1)
+    print("attempting to TX")
+    dummy_data = randint(0, 1, 20)
+    sdr.tx_data(dummy_data)
