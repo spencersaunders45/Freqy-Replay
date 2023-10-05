@@ -4,3 +4,8 @@ sample_rate = 15000000.0
 rx_gain = 74
 tx_gain = 70
 uhd_id = "None"
+
+[MONITOR]
+frequency = 915000000.0
+
+[ATTACK]

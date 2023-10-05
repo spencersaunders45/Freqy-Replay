@@ -1,26 +1,21 @@
 import numpy as np
 from numpy.random import randint
 from time import sleep
-import os, sys, traceback
+import os, sys, traceback, uhd
 
-FILE_DIR = os.path.dirname(os.path.realpath(__file__))
-LIB_PATH = f'/home/spinsir/uhd/install/local/lib/python3.10/dist-packages'
-ENV_PATH = os.environ['PATH']
-# Add uhd library to path
-os.environ['PATH'] = LIB_PATH + ':' + ENV_PATH
-
-import uhd
+USER = os.environ['USER']
+LIB_PATH = f'/home/{USER}/uhd/install/local/lib/python3.10/dist-packages'
 
 class SDR:
     """ Sets up the USRP to be used. Also provided methods to TX and RX. """
     tx_streamer = None
     rx_streamer = None
 
-    def __init__(self, sample_rate:float, center_freq:float, tx_gain:float, rx_gain:float, usrp_device_name:str):
+    def __init__(self, sample_rate:float, center_freq:float, tx_gain:int, rx_gain:int, usrp_device_name:str):
         self.sample_rate:float = sample_rate
         self.center_freq:float = center_freq
-        self.tx_gain:float = tx_gain
-        self.rx_gain:float = rx_gain
+        self.tx_gain:int = tx_gain
+        self.rx_gain:int = rx_gain
         self.usrp_device_name:str = usrp_device_name
         # RX
         self.rx_stream_cmd = uhd.types.StreamCMD(uhd.types.StreamMode.start_cont)
@@ -93,11 +88,11 @@ class SDR:
             print(traceback.format_exc())
             raise
 
-    def tx_data(self, data) -> None:
+    def tx_data(self, data:np.ndarray) -> None:
         """ Sends data out over the USRP 
         
         Arguments:
-            data (???): The packet to be transmitted.
+            data (np.ndarray): The packet to be transmitted.
         """
         self.tx_streamer.send(data, self.tx_meta_data)
         self.tx_streamer.send(np.zeros(10, dtype=np.complex64), self.tx2_meta_data)
