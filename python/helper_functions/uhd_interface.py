@@ -1,7 +1,6 @@
 import numpy as np
-from numpy.random import randint
 from time import sleep
-import os, sys, traceback, uhd
+import os, traceback, uhd
 
 USER = os.environ['USER']
 LIB_PATH = f'/home/{USER}/uhd/install/local/lib/python3.10/dist-packages'
@@ -11,7 +10,7 @@ class SDR:
     _tx_streamer = None
     _rx_streamer = None
 
-    def __init__(self, sample_rate:float, center_freq:float, tx_gain:int, rx_gain:int, usrp_device_name:str):
+    def __init__(self, sample_rate:float, center_freq:float, tx_gain:int, rx_gain:int, usrp_device_name:str = None):
         self._sample_rate:float = sample_rate
         self._center_freq:float = center_freq
         self._tx_gain:int = tx_gain
@@ -102,7 +101,7 @@ class SDR:
         self._recv_buffer = np.zeros(
             (1, self._rx_streamer.get_max_num_samps() * 10), dtype=np.complex64
         )
-        self._rx_streamer.recv(self._recv_buffer, self._rx_meta_data, 0.2)
+        self._rx_streamer.recv(self._recv_buffer, self._rx_meta_data, 0.1)
         if self._rx_meta_data.error_code != uhd.types.RXMetadataErrorCode.none:
             print(f'error: {self._rx_meta_data.strerror()}')
         return self._recv_buffer

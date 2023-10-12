@@ -1,35 +1,66 @@
 from tomlkit.toml_file import TOMLFile
+from tomlkit.toml_document import TOMLDocument
 import multiprocessing as mp
 import threading as th
-from time import time
+from time import sleep
+import numpy as np
+import argparse, traceback
 
-from uhd_interface import SDR
+from helper_functions.uhd_interface import SDR
 from helper_functions.hdf5_handler import HDF5Handler
 from helper_functions.freq_check import dominant_frequency
-
-import numpy as np
-
-settings = TOMLFile('config.toml').read()
-
-""" 
-TODO: add arguments to view all saved frequencies
-TODO: add argument to select saved frequency
-"""
+from monitor import Monitor
+from attack import Attack
 
 # sdr = SDR(15000000.0, 2400000000.0, 70, 74, None)
-hdf5 = HDF5Handler()
 
-# signal = sdr.rx_data()
-signal = hdf5.get_signal('capture1').tolist()
-clean_signal = list()
+class FreqyReplay:
+    streaming_q:mp.Queue = mp.Queue()
+    hdf5:HDF5Handler = HDF5Handler()
+    settings:TOMLDocument = TOMLFile('config.toml').read()
 
-for i in signal:
-    for j in i:
-        if j.real == 0.0 or j.imag == 0.0:
-            continue
-        clean_signal.append(j)
+    def __init__(self, mode:str):
+        """The main class that controls the processes and threads of the application.
 
-# clean_signal = np.array(clean_signal)
-start_time = time()
-print(dominant_frequency(clean_signal, 15000000.0, 2400000000.0))
-print(time() - start_time)
+        Arguments:
+            mode (str): Defines if the radio will be in Attack or Monitor mode.
+        """
+        # Get TOML key value pairs
+        self.toml_radio:dict = self.settings.get('RADIO')
+        self.toml_attack:dict = self.settings.get('ATTACK')
+        self.toml_monitor:dict = self.settings.get("MONITOR")
+        # RADIO
+        self.center_freq:float = self.toml_radio['center_freq']
+        self.sample_rate:float = self.toml_radio['sample_rate']
+        self.rx_gain:int = self.toml_radio['rx_gain']
+        self.tx_gain:int = self.toml_radio['tx_gain']
+        self.uhd_id:str = self.toml_radio['uhd_id']
+        # ATTACK
+        self.file:str = self.toml_attack['file']
+        self.dataset:str = self.toml_attack['dataset']
+        self.repeat:int = self.toml_attack['repeat']
+        self.interval:float = self.toml_attack['interval']
+        # MONITOR
+        self.target_freq:float = self.toml_monitor['target_freq']
+        # SDR
+        self.sdr = SDR(self.sample_rate, self.center_freq, self.tx_gain, self.rx_gain)
+        # Call the mode
+        if mode == "attack":
+            self.freqy_attack()
+        elif mode == "monitor":
+            self.freqy_monitor()
+        else:
+            print("Something when wrong. Mode was not found")
+            print(traceback.format_exc())
+
+    def freqy_attack(self):
+        Attack()
+
+    def freqy_monitor(self):
+        Monitor()
+
+
+
+
+if __name__ == '__main__':
+    FreqyReplay()
