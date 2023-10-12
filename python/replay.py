@@ -42,6 +42,7 @@ class FreqyReplay:
         self.interval:float = self.toml_attack['interval']
         # MONITOR
         self.target_freq:float = self.toml_monitor['target_freq']
+        self.listen_time:float = self.toml_monitor['listen_time']
         # SDR
         self.sdr = SDR(self.sample_rate, self.center_freq, self.tx_gain, self.rx_gain)
         # Call the mode
@@ -54,12 +55,18 @@ class FreqyReplay:
             print(traceback.format_exc())
 
     def freqy_attack(self):
-        Attack()
+        """ Starts a replay attack. """
+        # attack_p = mp.Process(target=Attack(self.file, self.dataset, self.repeat, self.interval).start)
+        # attack_p.start()
+        # attack_p.join()
+        pass
 
     def freqy_monitor(self):
-        Monitor()
-
-
+        """ Starts monitoring airwaves. """
+        captured_signals_q = mp.Queue(20)
+        monitor_p = mp.Process(target=Monitor(self.target_freq, self.listen_time, self.sdr, captured_signals_q, self.hdf5).start)
+        monitor_p.start()
+        monitor_p.join()
 
 
 if __name__ == '__main__':

@@ -13,6 +13,7 @@ interval = 1.0 # in seconds
 
 [MONITOR]
 target_freq = 915000000.0
+listen_time = 0.3 # in seconds
 
 # center_frequncy: 2.4 GHz -> 2400000000.0
 
