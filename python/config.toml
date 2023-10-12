@@ -5,7 +5,7 @@ rx_gain = 74
 tx_gain = 70
 uhd_id = "None"
 
-[MONITOR]
-frequency = 915000000.0
+# center_frequncy: 2.4 GHz -> 2400000000.0
 
-[ATTACK]
+# center_frequency: 915 MHz -> 915000000.0
+# sample_rate:      15 MHz
