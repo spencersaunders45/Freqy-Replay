@@ -1,5 +1,6 @@
 # Files
 *.hdf5
+sandbox.py
 
 # Folders
 .vscode
