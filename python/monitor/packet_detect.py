@@ -21,37 +21,33 @@ def process_signal(signal:np.ndarray, threshold:float, cutoff:int, packet:np.nda
         tuple (np.ndarray, bool): A tuple containing the packet and a bool
             indicating if the packet was completed.
     """
-    signal = np.trim_zeros(signal, trim='b')
-    abs_signal:np.ndarray = np.abs(signal)
-    max_signal_value = np.max(abs_signal)
-    # If there is currently no packet detected then find if
-    # there are any signals that go above the threshold.
-    # TODO: Check if there are any values above the threshold before looping. If continuing a packet check to see if the index is larger than the cutoff point.
+    # TODO: Check if they want to keep scanning after end of packet is found
+    signal:np.ndarray = np.trim_zeros(signal, trim='b')
+    abs_signal:np.ndarray = np.absolute(signal)
+    # Check if the max value is above the threshold
+    max_value_in_signal = np.max(abs_signal)
+    if max_value_in_signal < threshold:
+        return (packet, True)
+    # If there is no packet then create start of packet
     if packet == None:
-        if max_signal_value > threshold:
-            max_value_index:int = np.argmax(abs_signal)
-            signal = signal[max_value_index:]
+        max_value_index:int = np.argmax(abs_signal)
+        packet = signal[max_value_index:]
+    # Scan rest of packet to find end of packet
+    cutoff_counter:int = cutoff
+    last_index_above_threshold = None
+    for index in range(abs_signal.size-1):
+        # Stop when end of packet is found
+        if cutoff_counter <= 0:
+            packet = np.concatenate(packet, signal[:last_index_above_threshold])
+            return (packet, True)
+        # Continue scanning for end of packet
+        if abs_signal[index] > threshold:
+            cutoff_counter:int = cutoff
+            last_index_above_threshold:int = index
+        # Decrement the cutoff_counter
         else:
-            return (packet, True)
-    # Find the cutoff point of the packet in the signal
-    #! TODO: Make sure packet is not None
-    signal_cutoff:int = cutoff
-    index_above_threshold:int = None
-    for i in range(len(abs_signal)):
-        if signal_cutoff == 0 and packet == None:
-            packet = signal[:index_above_threshold+1]
-            return (packet, True)
-        if signal_cutoff == 0 and index_above_threshold == None:
-            return (packet, True)
-        elif signal_cutoff == 0 and index_above_threshold:
-            signal = signal[:index_above_threshold+1]
-            packet = np.concatenate(packet, signal)
-            return (packet, True)
-        elif signal_cutoff > 0 and abs_signal[i] > threshold:
-            index_above_threshold = i
-            signal_cutoff = cutoff
-        elif signal_cutoff > 0 and abs_signal[i] < threshold:
-            signal_cutoff -= 1
+            cutoff_counter -= 1
+    # Entire signal is part of the packet
     packet = np.concatenate(packet, signal)
     return (packet, False)
 
@@ -100,3 +96,44 @@ class PacketDetect:
             if self.packet and end_of_packet:
                 self.packet_q.put(self.packet)
                 self.packet = None
+
+
+
+"""
+signal = np.trim_zeros(signal, trim='b')
+abs_signal:np.ndarray = np.abs(signal)
+max_signal_value = np.max(abs_signal)
+# If there is currently no packet detected then find if
+# there are any signals that go above the threshold.
+# TODO: Check if there are any values above the threshold before looping. If continuing a packet check to see if the index is larger than the cutoff point.
+if packet == None:
+    if max_signal_value > threshold:                           #* No packet exists and there is a value above the threshold
+        max_value_index:int = np.argmax(abs_signal)
+        signal = signal[max_value_index:]
+    else:                                                      #* No packet exists and no value above the threshold
+        return (packet, True)
+# Find the cutoff point of the packet in the signal
+#! TODO: Make sure packet is not None
+signal_cutoff:int = cutoff
+index_above_threshold:int = None
+for i in range(len(abs_signal)):
+    if signal_cutoff == 0 and packet == None:                  #* cutoff reached and packet has not been created yet
+        packet = signal[:index_above_threshold+1]
+        return (packet, True)
+    if signal_cutoff == 0 and index_above_threshold == None:   #* cutoff reached, packet exists, and end of signal is not found
+        return (packet, True)
+    elif signal_cutoff == 0 and index_above_threshold:         #* cutoff reached, packet exists, 
+        signal = signal[:index_above_threshold+1]
+        packet = np.concatenate(packet, signal)
+        return (packet, True)
+    elif signal_cutoff > 0 and abs_signal[i] > threshold:
+        index_above_threshold = i
+        signal_cutoff = cutoff
+    elif signal_cutoff > 0 and abs_signal[i] < threshold:
+        signal_cutoff -= 1
+if packet:
+    packet = np.concatenate(packet, signal)
+    return (packet, False)
+else:
+    return (signal, False)
+"""
