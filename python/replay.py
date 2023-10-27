@@ -71,12 +71,10 @@ class FreqyReplay:
         packet_count = mp.Value("i", 0)
         # Processes
         streaming = mp.Process(target=Stream().start)
+        packet_detect = mp.Process(target=PacketDetect().start)
         packet_saver = mp.Process(target=PacketSaver().start)
         streaming.start()
         packet_saver.start()
-        with mp.Pool(self.pool_size, PacketDetect().start) as pool:
-            pool.close()
-            pool.join()
         streaming.join()
         packet_saver.join()
 

@@ -24,12 +24,6 @@ class Stream:
         self.packet_order = 0
 
     def start(self):
-        """Listens for a target frequency"""
-        # TODO: loops through data streamed from USRP and averages out the freq.
-        # Once the average matches the target frequency that section is saved as a hdf5.
+        """ Streams signals captured from the SDR """
         while True:
-            signal = self.sdr.rx_data()
-            self.stream_q.put((signal,self.packet_order))
-            self.packet_order += 1
-            if self.packet_order >= self.max_count:
-                self.packet_order = 0
+            self.stream_q.put(self.sdr.rx_data())
