@@ -4,7 +4,7 @@ from numba import njit, jit
 from time import sleep
 
 @njit(cache=True, fastmath=True)
-def process_signal(signal:np.ndarray, threshold:float, cutoff:int, packet:np.ndarray, last_drop_off_count:int) -> tuple:
+def process_signal(signal:np.ndarray, threshold:float, cutoff:int, packet:np.ndarray, carryover:int) -> tuple:
     """Decides if the signal is part of a packet
     
     Arguments:
@@ -20,7 +20,7 @@ def process_signal(signal:np.ndarray, threshold:float, cutoff:int, packet:np.nda
         packet (np.ndarray): Holds the pieces of collected signals that 
             contain the packet information.
 
-        last_drop_off_count (int): If a packet is not finished being created then
+        carryover (int): If a packet is not finished being created then
             this will contain the value of the number of index's that were
             below the threshold when the signal ended (if any).
 
@@ -45,31 +45,31 @@ def process_signal(signal:np.ndarray, threshold:float, cutoff:int, packet:np.nda
     # If there is no packet and there is no cutoff found
     if packet == None:
         distance_till_end_of_signal:int = signal.size - threshold_list[-1]
-        # Means there is only one packet
+        end_of_packet_reached:bool = False
+        if distance_till_end_of_signal > cutoff:
+            end_of_packet_reached = True
+            distance_till_end_of_signal = 0
         if cutoff_list.size == 0:
-            #* Determine if it is the start of a packet or is a full packet
-            # This signifies the capture of a whole packet
-            if distance_till_end_of_signal > cutoff:
-                return (signal[threshold_list[0]:threshold_list[-1]], True, 0)
-            # Means that we have the beginning of a packet
-            else:
-                return (signal[threshold_list[0]:threshold_list[-1]], False, distance_till_end_of_signal)
-        if cutoff_list.size > 0:
+            return ([signal[threshold_list[0]:threshold_list[-1]]], end_of_packet_reached, distance_till_end_of_signal)
+        else:
             all_packets:list = list()
-            # Determine if the last packet ends or not
-            if distance_till_end_of_signal > cutoff:
-                for i in range(cutoff_list.size):
-                    cutoff_list_value:int = cutoff_list[i]
-                    # Find the first packet
-                    if i == 0:
-                        all_packets.append(signal[threshold_list[0]:threshold_list[cutoff_list_value]])
-                    # Find the last packet
-                    elif i == (cutoff_list.size - 1):
-                        all_packets.append(signal[threshold_list[cutoff_list_value]:threshold_list[-1]])
-                    # Find all other packets
-                    else:
-                        last_cutoff_list_value:int = cutoff_list[i-1]
-                        all_packets.append(signal[threshold_list[last_cutoff_list_value]:threshold_list[cutoff_list_value]])
+            for i in range(cutoff_list.size):
+                cutoff_list_value:int = cutoff_list[i]
+                # Find the first packet
+                if i == 0:
+                    all_packets.append(signal[threshold_list[0]:threshold_list[cutoff_list_value]])
+                # Find the last packet
+                elif i == (cutoff_list.size - 1):
+                    all_packets.append(signal[threshold_list[cutoff_list_value]:threshold_list[-1]])
+                # Find all other packets
+                else:
+                    last_cutoff_list_value:int = cutoff_list[i-1]
+                    all_packets.append(signal[threshold_list[last_cutoff_list_value]:threshold_list[cutoff_list_value]])
+            return (all_packets, end_of_packet_reached, distance_till_end_of_signal)
+    else:
+        # TODO: If carryover is greater than 0 then check if the distance to the next threshold is less than the cutoff
+        # else send that packet into the list of all_packets
+        pass
 
 
 
