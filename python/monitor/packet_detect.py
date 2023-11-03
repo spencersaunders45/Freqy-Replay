@@ -4,7 +4,7 @@ from numba import njit, jit
 from time import sleep
 
 @njit(cache=True, fastmath=True)
-def process_signal(signal:np.ndarray, threshold:float, cutoff:int, packet:np.ndarray) -> tuple:
+def process_signal(signal:np.ndarray, threshold:float, cutoff:int, packet:np.ndarray, last_drop_off_count:int) -> tuple:
     """Decides if the signal is part of a packet
     
     Arguments:
@@ -17,39 +17,59 @@ def process_signal(signal:np.ndarray, threshold:float, cutoff:int, packet:np.nda
         cutoff (int): The number of IQ values that are allowed to be under
             the threshold and still be considered part of a packet.
 
+        packet (np.ndarray): Holds the pieces of collected signals that 
+            contain the packet information.
+
+        last_drop_off_count (int): If a packet is not finished being created then
+            this will contain the value of the number of index's that were
+            below the threshold when the signal ended (if any).
+
     Returns:
-        tuple (np.ndarray, bool): A tuple containing the packet and a bool
+        tuple (np.ndarray, bool, int): A tuple containing the packet and a bool
             indicating if the packet was completed.
     """
-    # TODO: Check if they want to keep scanning after end of packet is found
+    # TODO: Create a image that shows the relationship between threshold_list, threshold_diff, and cutoff_list
+    # NOTE: A cutoff represents the end of one packet and the beginning of another
     signal:np.ndarray = np.trim_zeros(signal, trim='b')
     abs_signal:np.ndarray = np.absolute(signal)
     # Check if the max value is above the threshold
     max_value_in_signal = np.max(abs_signal)
     if max_value_in_signal < threshold:
         return (packet, True)
-    # If there is no packet then create start of packet
+    # Create a list of index's where each index is a value above the threshold
+    threshold_list:np.ndarray = np.where(abs_signal > threshold)[0]
+    # Create a list of values where each value is the distance between each index
+    threshold_diff:np.ndarray = np.diff(threshold_list)
+    # Create a list where each value shows where a cutoff will occur
+    cutoff_list:np.ndarray = np.where(threshold_diff > cutoff)[0]
+    # If there is no packet and there is no cutoff found
     if packet == None:
-        max_value_index:int = np.argmax(abs_signal)
-        packet = signal[max_value_index:]
-    # Scan rest of packet to find end of packet
-    cutoff_counter:int = cutoff
-    last_index_above_threshold = None
-    for index in range(abs_signal.size-1):
-        # Stop when end of packet is found
-        if cutoff_counter <= 0:
-            packet = np.concatenate(packet, signal[:last_index_above_threshold])
-            return (packet, True)
-        # Continue scanning for end of packet
-        if abs_signal[index] > threshold:
-            cutoff_counter:int = cutoff
-            last_index_above_threshold:int = index
-        # Decrement the cutoff_counter
-        else:
-            cutoff_counter -= 1
-    # Entire signal is part of the packet
-    packet = np.concatenate(packet, signal)
-    return (packet, False)
+        distance_till_end_of_signal:int = signal.size - threshold_list[-1]
+        # Means there is only one packet
+        if cutoff_list.size == 0:
+            #* Determine if it is the start of a packet or is a full packet
+            # This signifies the capture of a whole packet
+            if distance_till_end_of_signal > cutoff:
+                return (signal[threshold_list[0]:threshold_list[-1]], True, 0)
+            # Means that we have the beginning of a packet
+            else:
+                return (signal[threshold_list[0]:threshold_list[-1]], False, distance_till_end_of_signal)
+        if cutoff_list.size > 0:
+            all_packets:list = list()
+            # Determine if the last packet ends or not
+            if distance_till_end_of_signal > cutoff:
+                for i in range(cutoff_list.size):
+                    cutoff_list_value:int = cutoff_list[i]
+                    # Find the first packet
+                    if i == 0:
+                        all_packets.append(signal[threshold_list[0]:threshold_list[cutoff_list_value]])
+                    # Find the last packet
+                    elif i == (cutoff_list.size - 1):
+                        all_packets.append(signal[threshold_list[cutoff_list_value]:threshold_list[-1]])
+                    # Find all other packets
+                    else:
+                        last_cutoff_list_value:int = cutoff_list[i-1]
+                        all_packets.append(signal[threshold_list[last_cutoff_list_value]:threshold_list[cutoff_list_value]])
 
 
 
@@ -100,3 +120,36 @@ class PacketDetect:
                 break #! remove if continuing to grab more signals
             elif updated_packet:
                 self.packet = updated_packet
+
+
+"""
+# TODO: Check if they want to keep scanning after end of packet is found
+    signal:np.ndarray = np.trim_zeros(signal, trim='b')
+    abs_signal:np.ndarray = np.absolute(signal)
+    # Check if the max value is above the threshold
+    max_value_in_signal = np.max(abs_signal)
+    if max_value_in_signal < threshold:
+        return (packet, True)
+    # If there is no packet then create start of packet
+    if packet == None:
+        max_value_index:int = np.argmax(abs_signal)
+        packet = signal[max_value_index:]
+    # Scan rest of packet to find end of packet
+    cutoff_counter:int = cutoff
+    last_index_above_threshold = None
+    for index in range(abs_signal.size-1):
+        # Stop when end of packet is found
+        if cutoff_counter <= 0:
+            packet = np.concatenate(packet, signal[:last_index_above_threshold])
+            return (packet, True)
+        # Continue scanning for end of packet
+        if abs_signal[index] > threshold:
+            cutoff_counter:int = cutoff
+            last_index_above_threshold:int = index
+        # Decrement the cutoff_counter
+        else:
+            cutoff_counter -= 1
+    # Entire signal is part of the packet
+    packet = np.concatenate(packet, signal)
+    return (packet, False)
+"""

@@ -1,6 +1,8 @@
 # Files
 *.hdf5
 sandbox.py
+*.drawio
+*.drawio.bkp
 
 # Folders
 .vscode
