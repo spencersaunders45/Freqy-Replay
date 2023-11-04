@@ -25,51 +25,70 @@ def process_signal(signal:np.ndarray, threshold:float, cutoff:int, packet:np.nda
             below the threshold when the signal ended (if any).
 
     Returns:
-        tuple (np.ndarray, bool, int): A tuple containing the packet and a bool
-            indicating if the packet was completed.
+        tuple (list[np.ndarray], bool, int): A tuple containing a list of
+            packets, a bool indicating if the last packet in the list was
+            completed, a int representing the number of indexes below the
+            threshold when the signal ended.
     """
-    # TODO: Create a image that shows the relationship between threshold_list, threshold_diff, and cutoff_list
-    # NOTE: A cutoff represents the end of one packet and the beginning of another
     signal:np.ndarray = np.trim_zeros(signal, trim='b')
     abs_signal:np.ndarray = np.absolute(signal)
     # Check if the max value is above the threshold
     max_value_in_signal = np.max(abs_signal)
     if max_value_in_signal < threshold:
         return (packet, True)
-    # Create a list of index's where each index is a value above the threshold
+    # Each value maps to a index in abs_signal where the value is above the threshold
     threshold_list:np.ndarray = np.where(abs_signal > threshold)[0]
-    # Create a list of values where each value is the distance between each index
+    # Each value represents the difference between index i and i+1 in threshold_list.
     threshold_diff:np.ndarray = np.diff(threshold_list)
-    # Create a list where each value shows where a cutoff will occur
+    # Each value represents the 
     cutoff_list:np.ndarray = np.where(threshold_diff > cutoff)[0]
+
+    all_packets:list = list()
+    distance_till_end_of_signal:int = signal.size - threshold_list[-1]
+    end_of_packet_reached:bool = False
+    if distance_till_end_of_signal > cutoff:
+        end_of_packet_reached = True
+        distance_till_end_of_signal = 0
+
     # If there is no packet and there is no cutoff found
     if packet == None:
-        distance_till_end_of_signal:int = signal.size - threshold_list[-1]
-        end_of_packet_reached:bool = False
-        if distance_till_end_of_signal > cutoff:
-            end_of_packet_reached = True
-            distance_till_end_of_signal = 0
         if cutoff_list.size == 0:
             return ([signal[threshold_list[0]:threshold_list[-1]]], end_of_packet_reached, distance_till_end_of_signal)
-        else:
-            all_packets:list = list()
-            for i in range(cutoff_list.size):
-                cutoff_list_value:int = cutoff_list[i]
-                # Find the first packet
-                if i == 0:
-                    all_packets.append(signal[threshold_list[0]:threshold_list[cutoff_list_value]])
-                # Find the last packet
-                elif i == (cutoff_list.size - 1):
-                    all_packets.append(signal[threshold_list[cutoff_list_value]:threshold_list[-1]])
-                # Find all other packets
-                else:
-                    last_cutoff_list_value:int = cutoff_list[i-1]
-                    all_packets.append(signal[threshold_list[last_cutoff_list_value]:threshold_list[cutoff_list_value]])
-            return (all_packets, end_of_packet_reached, distance_till_end_of_signal)
+        for i in range(cutoff_list.size):
+            cutoff_list_value:int = cutoff_list[i]
+            # Find the first packet
+            if i == 0:
+                all_packets.append(signal[threshold_list[0]:threshold_list[cutoff_list_value]])
+            # Find the last packet
+            elif i == (cutoff_list.size - 1):
+                all_packets.append(signal[threshold_list[cutoff_list_value+1]:threshold_list[-1]])
+            # Find all other packets
+            else:
+                last_cutoff_list_value:int = cutoff_list[i-1]
+                all_packets.append(signal[threshold_list[last_cutoff_list_value+1]:threshold_list[cutoff_list_value]])
+        return (all_packets, end_of_packet_reached, distance_till_end_of_signal)
     else:
-        # TODO: If carryover is greater than 0 then check if the distance to the next threshold is less than the cutoff
-        # else send that packet into the list of all_packets
-        pass
+        # Check if the carryover packet ended or if it continues into this signal
+        packet_finished:bool = False
+        if (threshold_list[0] + carryover) > cutoff:
+            all_packets.append(packet)
+            packet_finished = True
+        # Find all packets
+        for i in range(cutoff_list.size):
+            cutoff_list_value:int = cutoff_list[i]
+            # Find the first packet
+            if i == 0 and not packet_finished:
+                all_packets.append(np.concatenate(packet, signal[threshold_list[0]:threshold_list[cutoff_list_value]]))
+            elif i == 0 and packet_finished:
+                all_packets.append(signal[threshold_list[0]:threshold_list[cutoff_list_value]])
+            # Find the last packet
+            elif i == (cutoff_list.size - 1):
+                all_packets.append(signal[threshold_list[cutoff_list_value+1]:threshold_list[-1]])
+            # Find all other packets
+            else:
+                last_cutoff_list_value:int = cutoff_list[i-1]
+                all_packets.append(signal[threshold_list[last_cutoff_list_value+1]:threshold_list[cutoff_list_value]])
+        return (all_packets, end_of_packet_reached, distance_till_end_of_signal)
 
 
 
