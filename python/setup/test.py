@@ -6,8 +6,8 @@ import os, sys
 import numpy as np
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
-ROOT = f'{FILE_DIR}/../../'
-sys.path.insert(0,ROOT)
+ROOT = f"{FILE_DIR}/../../"
+sys.path.insert(0, ROOT)
 
 from python.helper_functions.uhd_interface import SDR
 
