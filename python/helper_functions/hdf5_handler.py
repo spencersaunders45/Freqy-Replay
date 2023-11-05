@@ -47,16 +47,18 @@ class HDF5Handler:
         """
         try:
             create_counter:bool = False
-            if not os.path.isdir(f'{SIGNALS_DIR}{file_name}.hdf5'):
+            if not os.path.isfile(f'{SIGNALS_DIR}{file_name}.hdf5'):
                 create_counter = True
-            f:Group = h5py.File(f"{SIGNALS_DIR}{file_name}.hdf5", "w")
+                h5py.File(f"{SIGNALS_DIR}{file_name}.hdf5", "w")
+            f:Group = h5py.File(f"{SIGNALS_DIR}{file_name}.hdf5", "r+")
             # Add a counter to the file
             if create_counter:
-                f.create_dataset('counter', 0)
-                self.counter = 0
+                temp = f.create_dataset('counter', (1,), dtype='i')
+                temp[0] = 0
             # Create a dataset and add it to the HDF5 file
-            dataset: Dataset = f.create_dataset(f"signal_{f['counter'][:]+1}", data=signal)
-            f['counter'][...] += 1
+            counter = f['counter']
+            dataset: Dataset = f.create_dataset(f"signal{counter[0]}", data=signal)
+            counter[0] = counter[0] + 1
             # Add metadata to the dataset
             dataset.attrs.create("date_captured", date.today().strftime("%d-%b-%Y"))
             dataset.attrs.create("time_captured", datetime.now().time().strftime('%H:%M:%S'))
@@ -94,10 +96,12 @@ class HDF5Handler:
             file_name (str): The name of the HDF5 file.
         """
         f: Group = h5py.File(f"{file_name}", "r")
-        dataset: Dataset = f["signal"]
-        for name, value in dataset.attrs.items():
-            print(f"\t{name}: {value}")
-        print()
+        for key in f.keys():
+            dataset: Dataset = f[key]
+            print(f'\t{key}')
+            for name, value in dataset.attrs.items():
+                print(f"\t\t{name}: {value}")
+            print()
         f.close()
 
     def display_file_info(self) -> None:
@@ -111,6 +115,17 @@ class HDF5Handler:
                 print(file)
                 self.__display_metadata(f"{path}{file}")
 
+    def view_datasets(self, file_name:str) -> None:
+        """View all the datasets from a single file.
+        
+        Arguments:
+            file_name (str): The name of the file to be examined.
+        """
+        f = h5py.File(f'{SIGNALS_DIR}{file_name}.hdf5', 'r')
+        print(f'{file_name}.hdf5')
+        for key in f.keys():
+            print(f'\t{key}')
+
 
 if __name__ == "__main__":
     hdf5_handler = HDF5Handler()
@@ -120,12 +135,15 @@ if __name__ == "__main__":
         random_words.append(line.strip())
     f.close()
     for _ in range(5):
-        list_size = randint(100, 500)
-        signal = np.random.randint(-7, 7, list_size)
         word1 = random_words[randint(0, len(random_words) - 1)]
         word2 = random_words[randint(0, len(random_words) - 1)]
         file_name = f"{word1}-{word2}"
-        hdf5_handler.save_signal(
-            signal, file_name, date.today(), signal.nbytes, 915000000.0
-        )
+        for i in range(5):
+            list_size = randint(100, 500)
+            signal = np.random.randint(-7, 7, list_size)
+            hdf5_handler.save_signal(
+                signal, file_name, signal.nbytes, 915000000.0
+            )
+        # hdf5_handler.view_datasets(file_name)
+        # print()
     hdf5_handler.display_file_info()
