@@ -28,9 +28,9 @@ class HDF5Handler:
     def save_signal(
         self,
         signal: np.ndarray,
-        file_name: str,
         signal_size: float,
         frequency: float,
+        file_name: str = "default",
     ) -> None:
         """Saves captured signals into a hdf5 file.
         
@@ -70,11 +70,13 @@ class HDF5Handler:
             print(traceback.format_exc())
             raise
 
-    def get_signal(self, file_name: str) -> np.ndarray:
+    def get_signal(self, file_name: str, dataset: str) -> np.ndarray:
         """Gets the contents of the given hdf5 file and returns it.
 
         Arguments:
             file_name (str): The name of the hdf5 file. (There is no need to include the file extension)
+            
+            dataset (str): The name of the dataset in the hdf5 file.
 
         Returns:
             A numpy array containing the data for a signal.
@@ -89,13 +91,13 @@ class HDF5Handler:
             print(traceback.format_exc())
             raise
 
-    def __display_metadata(self, file_name: str) -> None:
+    def display_metadata(self, file_name: str) -> None:
         """Gets the metadata of a file.
 
         Arguments:
             file_name (str): The name of the HDF5 file.
         """
-        f: Group = h5py.File(f"{file_name}", "r")
+        f: Group = h5py.File(f"{SIGNALS_DIR}{file_name}", "r")
         for key in f.keys():
             dataset: Dataset = f[key]
             print(f'\t{key}')
@@ -104,7 +106,7 @@ class HDF5Handler:
             print()
         f.close()
 
-    def display_file_info(self) -> None:
+    def display_all_files(self) -> None:
         """Displays all HDF5 files and their metadata"""
         path = f"{PYTHON_DIR}/captured_signals/"
         file_list = os.listdir(path)
@@ -113,7 +115,7 @@ class HDF5Handler:
                 continue
             else:
                 print(file)
-                self.__display_metadata(f"{path}{file}")
+                self.display_metadata(f"{file}")
 
     def view_datasets(self, file_name:str) -> None:
         """View all the datasets from a single file.
@@ -125,6 +127,15 @@ class HDF5Handler:
         print(f'{file_name}.hdf5')
         for key in f.keys():
             print(f'\t{key}')
+
+    def get_all_files(self):
+        """Returns a list of all the file names in the signals folder."""
+        all_files = os.listdir(f'{SIGNALS_DIR}')
+        file_names = list()
+        for file in all_files:
+            if '.hdf5' in file:
+                file_names.append(file)
+        return all_files
 
 
 if __name__ == "__main__":
@@ -142,8 +153,8 @@ if __name__ == "__main__":
             list_size = randint(100, 500)
             signal = np.random.randint(-7, 7, list_size)
             hdf5_handler.save_signal(
-                signal, file_name, signal.nbytes, 915000000.0
+                signal, signal.nbytes, 915000000.0, file_name
             )
         # hdf5_handler.view_datasets(file_name)
         # print()
-    hdf5_handler.display_file_info()
+    hdf5_handler.display_all_files()
