@@ -66,9 +66,10 @@ class FreqyReplay:
 
     def freqy_attack(self):
         """Starts a replay attack."""
-        # attack_p = mp.Process(target=Attack(self.file, self.dataset, self.repeat, self.interval).start)
-        # attack_p.start()
-        # attack_p.join()
+        packet:np.ndarray = self.hdf5.get_signal(self.file, self.dataset)
+        attack_p = mp.Process(target=Attack(self.interval, packet, self.sdr).replay)
+        attack_p.start()
+        attack_p.join()
         pass
 
     def freqy_monitor(self):
