@@ -10,3 +10,4 @@ __pycache__
 uhd
 .pytest_cache
 docs
+.venv

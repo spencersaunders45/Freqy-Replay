@@ -1,6 +1,7 @@
 import numpy as np
 import multiprocessing as mp
 from numba import njit, jit
+from numba.typed import List
 from time import sleep
 
 
@@ -37,12 +38,20 @@ def process_signal(
         a int representing the number of indexes below the threshold when the
         signal ended.
     """
-    signal: np.ndarray = np.trim_zeros(signal, trim="b")
+    # Skips if signal is None
+    if signal == None:
+        return (None, True, 0)
+    # Skips if the array is empty
+    if not signal.any():
+        return (None, True, 0)
+    # Ensures array is 1D
+    signal = signal.ravel()
+    signal: np.ndarray = np.trim_zeros(signal)
     abs_signal: np.ndarray = np.absolute(signal)
     # Check if the max value is above the threshold
     max_value_in_signal = np.max(abs_signal)
     if max_value_in_signal < threshold:
-        return ([], True, 0)
+        return (None, True, 0)
     # Each value maps to a index in abs_signal where the value is above the
     # threshold
     threshold_list: np.ndarray = np.where(abs_signal > threshold)[0]
@@ -66,7 +75,7 @@ def process_signal(
     if packet == None:
         if cutoff_list.size == 0:
             return (
-                [signal[threshold_list[0] : threshold_list[-1]]],
+                [signal[threshold_list[0] :]],
                 end_of_packet_reached,
                 new_carryover,
             )
@@ -80,7 +89,7 @@ def process_signal(
             # Find the last packet
             elif i == (cutoff_list.size - 1):
                 all_packets.append(
-                    signal[threshold_list[cutoff_list_value + 1] : threshold_list[-1]]
+                    signal[threshold_list[cutoff_list_value + 1] : threshold_list[-1]+1]
                 )
             # Find all other packets
             else:
@@ -107,7 +116,7 @@ def process_signal(
                 all_packets.append(
                     np.concatenate(
                         packet,
-                        signal[threshold_list[0] : threshold_list[cutoff_list_value]],
+                        signal[: threshold_list[cutoff_list_value]],
                     )
                 )
             elif i == 0 and packet_finished:
@@ -117,7 +126,7 @@ def process_signal(
             # Find the last packet
             elif i == (cutoff_list.size - 1):
                 all_packets.append(
-                    signal[threshold_list[cutoff_list_value + 1] : threshold_list[-1]]
+                    signal[threshold_list[cutoff_list_value + 1] : threshold_list[-1]+1]
                 )
             # Find all other packets
             else:
@@ -157,14 +166,18 @@ class PacketDetect:
         self.cutoff: int = cutoff
         self.packet: np.ndarray = None
         self.carryover: int = None
+        self.run = True
 
     def start(self) -> None:
         """Decides when a signal is part of a packet."""
-        while True:
+        while self.run:
             signal = self.stream_q.get()
+            print(signal.shape)
             all_packets, end_of_packet_reached, self.carryover = process_signal(
                 signal, self.threshold, self.cutoff, self.packet, self.carryover
             )
+            if not all_packets:
+                continue
             if len(all_packets) > 0 and end_of_packet_reached:
                 self.packet = None
                 self.carryover = 0
@@ -174,33 +187,5 @@ class PacketDetect:
                 self.packet_q.put(all_packets)
 
 
-"""
-    signal:np.ndarray = np.trim_zeros(signal, trim='b')
-    abs_signal:np.ndarray = np.absolute(signal)
-    # Check if the max value is above the threshold
-    max_value_in_signal = np.max(abs_signal)
-    if max_value_in_signal < threshold:
-        return (packet, True)
-    # If there is no packet then create start of packet
-    if packet == None:
-        max_value_index:int = np.argmax(abs_signal)
-        packet = signal[max_value_index:]
-    # Scan rest of packet to find end of packet
-    cutoff_counter:int = cutoff
-    last_index_above_threshold = None
-    for index in range(abs_signal.size-1):
-        # Stop when end of packet is found
-        if cutoff_counter <= 0:
-            packet = np.concatenate(packet, signal[:last_index_above_threshold])
-            return (packet, True)
-        # Continue scanning for end of packet
-        if abs_signal[index] > threshold:
-            cutoff_counter:int = cutoff
-            last_index_above_threshold:int = index
-        # Decrement the cutoff_counter
-        else:
-            cutoff_counter -= 1
-    # Entire signal is part of the packet
-    packet = np.concatenate(packet, signal)
-    return (packet, False)
-"""
+if __name__ == '__main__':
+    pass

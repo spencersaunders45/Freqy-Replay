@@ -19,8 +19,9 @@ class Stream:
         """
         self.sdr = sdr
         self.stream_q = stream_q
+        self.run = True
 
     def start(self) -> None:
         """Streams signals captured from the SDR"""
-        while True:
+        while self.run:
             self.stream_q.put(self.sdr.rx_data())

@@ -30,9 +30,10 @@ class PacketSaver:
         self.hdf5 = hdf5
         self.center_frequency = center_frequency
         self.dataset_count = 0
+        self.run = True
 
     def start(self):
-        while True:
+        while self.run:
             all_packets = self.packet_q.get()
             for packet in all_packets:
                 self.hdf5.save_signal(packet, self.file_name, packet.size, self.center_frequency)

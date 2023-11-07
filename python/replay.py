@@ -1,3 +1,5 @@
+#!/home/dev/git/Freqy-Replay/.venv/bin/python
+
 from tomlkit.toml_file import TOMLFile
 from tomlkit.toml_document import TOMLDocument
 import multiprocessing as mp
@@ -6,9 +8,12 @@ from time import sleep
 import numpy as np
 import argparse, traceback
 import sys, os
+import signal
 
 PYTHON_DIR = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0,PYTHON_DIR)
+UHD = '/home/dev/uhd/install/lib/python3.8/site-packages'
+sys.path.insert(0, UHD)
 
 from helper_functions.uhd_interface import SDR
 from helper_functions.hdf5_handler import HDF5Handler
@@ -25,6 +30,7 @@ class FreqyReplay:
     streaming_q: mp.Queue = mp.Queue()
     hdf5: HDF5Handler = HDF5Handler()
     settings: TOMLDocument = TOMLFile("config.toml").read()
+    all_processes = list()
 
     def __init__(self, mode: str, file_name:str = None):
         """The main class that controls the processes and threads of the application.
@@ -64,28 +70,35 @@ class FreqyReplay:
             print("Something when wrong. Mode was not found")
             print(traceback.format_exc())
 
+    def __sigint_handler(self, sig_num, frame):
+        for process in self.all_processes:
+            process.kill()
+        print("ENDED")
+
     def freqy_attack(self):
         """Starts a replay attack."""
-        packet:np.ndarray = self.hdf5.get_signal(self.file, self.dataset)
-        attack_p = mp.Process(target=Attack(self.interval, packet, self.sdr).replay)
-        attack_p.start()
-        attack_p.join()
-        pass
+        # packet:np.ndarray = self.hdf5.get_signal(self.file, self.dataset)
+        # attack_p = mp.Process(target=Attack(self.interval, packet, self.sdr).replay)
+        # attack_p.start()
+        # attack_p.join()
+        signal.signal(signal.SIGINT, self.__sigint_handler)
+        self.testy_p = mp.Process(target=Test().fun_loop)
+        self.testy_p.start()
 
     def freqy_monitor(self):
         """Starts monitoring airwaves."""
         streaming_q = mp.Queue(10)
         packet_q = mp.Queue(10)
+        stream_p = Stream(self.sdr, streaming_q)
+        packet_detect_p = PacketDetect(streaming_q, self.threshold, self.cutoff, packet_q)
+        packet_saver_p = PacketSaver(self.file, packet_q, self.hdf5, self.center_freq)
         # Processes
-        streaming = mp.Process(target=Stream().start)
-        packet_detect = mp.Process(target=PacketDetect().start)
-        packet_saver = mp.Process(target=PacketSaver().start)
-        packet_saver.start()
-        packet_detect.start()
-        streaming.start()
-        packet_saver.join()
-        packet_detect.join()
-        streaming.join()
+        self.all_processes.append(mp.Process(target=stream_p.start))
+        self.all_processes.append(mp.Process(target=packet_detect_p.start))
+        self.all_processes.append(mp.Process(target=packet_saver_p.start))
+        for process in self.all_processes:
+            process.start()
+
 
     def display_all_files(self):
         self.hdf5.display_all_files()
