@@ -83,7 +83,7 @@ class HDF5Handler:
         """
         try:
             f: Group = h5py.File(f"{SIGNALS_DIR}{file_name}.hdf5", "r")
-            signal = f["signal"][:]
+            signal = f[dataset][:]
             f.close()
             return signal
         except Exception as e:

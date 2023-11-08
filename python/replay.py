@@ -10,10 +10,12 @@ import argparse, traceback
 import sys, os
 import signal
 
-PYTHON_DIR = os.path.dirname(os.path.realpath(__file__))
-sys.path.insert(0,PYTHON_DIR)
-UHD = '/home/dev/uhd/install/lib/python3.8/site-packages'
-sys.path.insert(0, UHD)
+_HOME = os.path.isdir('HOME')
+if os.path.isdir(f'{_HOME}/uhd/install/lib/python3.8/site-packages'):
+    PYTHON_DIR = os.path.dirname(os.path.realpath(__file__))
+    sys.path.insert(0,PYTHON_DIR)
+    UHD = f'{_HOME}/uhd/install/lib/python3.8/site-packages'
+    sys.path.insert(0, UHD)
 
 from helper_functions.uhd_interface import SDR
 from helper_functions.hdf5_handler import HDF5Handler
@@ -57,6 +59,7 @@ class FreqyReplay:
         # MONITOR
         self.threshold: float = self.toml_monitor["threshold"]
         self.cutoff: float = self.toml_monitor["cutoff"]
+        self.packet_slack: int = self.toml_monitor["packet_slack"]
         # Call the mode
         if mode == "attack":
             self.sdr = SDR(self.sample_rate, self.center_freq, self.tx_gain, self.rx_gain)

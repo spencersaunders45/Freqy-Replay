@@ -1,10 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from helper_functions.hdf5_handler import HDF5Handler
 
 # Parameters for the dummy signal
 sample_rate = 1e6  # Sample rate in samples per second (Hz)
 duration = 1       # Signal duration in seconds
-frequency = 2.4e3  # Signal frequency in Hz (for a 2.4 GHz signal, you'd use 2.4e9)
+frequency = 2.4e9  # Signal frequency in Hz (for a 2.4 GHz signal, you'd use 2.4e9)
 
 # Time vector for the signal
 t = np.arange(0, duration, 1/sample_rate)
@@ -13,9 +14,9 @@ t = np.arange(0, duration, 1/sample_rate)
 signal = np.sin(2 * np.pi * frequency * t)
 
 # Parameters for the dummy packet
-packet_duration = 1e-2      # Duration of the packet in seconds (1e-4)
+packet_duration = 1e-2                              # Duration of the packet in seconds (1e-4)
 packet_length = int(packet_duration * sample_rate)  # Number of samples in the packet
-packet = np.ones(packet_length)  # Create a square pulse for the dummy packet
+packet = np.ones(packet_length)                     # Create a square pulse for the dummy packet
 
 # Positions where packets will be inserted
 packet_positions = [
@@ -33,11 +34,15 @@ for pos in packet_positions:
 # Add Gaussian noise to the entire signal (signal + packets)
 noise_variance = 0.1
 noisy_signal = signal + np.random.normal(0, np.sqrt(noise_variance), signal.shape)
+noisy_signal = np.abs(noisy_signal)
+
+# Save the noisy_signal
+# hdf5 = HDF5Handler()
+# hdf5.save_signal(noisy_signal, noisy_signal.size, frequency, "test-5-packets-2.4ghz")
 
 # Plot the noisy signal with the packets
 plt.figure(figsize=(15, 5))
 plt.plot(t, noisy_signal)
-# plt.plot(t, test)
 plt.title("Noisy Signal with Packets")
 plt.xlabel("Time [s]")
 plt.ylabel("Amplitude")
