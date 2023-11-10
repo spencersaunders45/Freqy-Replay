@@ -15,9 +15,10 @@ interval = 1.0                  # The waittime before another packet will be sen
 threshold = 0.6                 # The value a signal must be above to be considered a packet
 cutoff = 100                    # The number of indexes before a packet will be considered ended.
 packet_slack = 100              # The number of indexes that will be added to the beginning and ending of the discovered packet
-queue_size = 170                 # The 
-file_name = "testy"
-max_loops = "None"
+queue_size = 170                # The maximum size a queue can be
+file_name = "testy"             # The name of the file where packets are to be saved
+max_loops = "None"              # The max number of times to collect signals
+min_packet_size = "None"        # The minimun number of indexes a packet must have to be kept
 
 
 

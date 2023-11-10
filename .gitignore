@@ -12,5 +12,4 @@ docs
 .venv
 
 # HDF5 files
-!priming_signals.hdf5
 *.hdf5
