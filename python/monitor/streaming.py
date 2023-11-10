@@ -55,11 +55,13 @@ class Stream:
 
     def __sigint_handler(self, sig_num, frame):
         self.keep_going = False
-        self.stream_q.put("DONE")
+        self.stream_q.put("DONE", timeout=1)
+        sleep(5)
+        exit(0)
 
     def launch(self) -> None:
-        signal.signal(signal.SIGINT, self.__sigint_handler)
-        packet_detect = PacketDetect(self.stream_q, self.threshold, self.cutoff, self.packet_queue, self.packet_slack)
+        # signal.signal(signal.SIGINT, self.__sigint_handler)
+        packet_detect = PacketDetect(self.stream_q, self.threshold, self.cutoff, self.packet_queue, self.packet_slack, 1.5)
         packet_saver = PacketSaver(self.file_name, self.packet_queue, self.hdf5, self.center_freq, self.sample_rate, self.threshold)
         packet_detect_p = mp.Process(target=packet_detect.start_packet_detect)
         packet_saver_p = mp.Process(target=packet_saver.start)

@@ -1,6 +1,12 @@
 import numpy as np
 from time import sleep
-import os, traceback, uhd
+import os, traceback, uhd, sys
+
+FILE_DIR = os.path.dirname(os.path.realpath(__file__))
+PYTHON_DIR = f'{FILE_DIR}/../'
+sys.path.insert(0, PYTHON_DIR)
+
+from tools.plot_signal import plot_signal
 
 
 class SDR:
@@ -118,9 +124,18 @@ if __name__ == "__main__":
     sdr = SDR(15000000.0, 2400000000.0, 70, 74, None)
     sleep(1)
     count = 0
-    while True:
+    signals = list()
+    for _ in range(50):
         data = sdr.rx_data()
-        print(count)
-        count += 1
-        if count > 5000:
-            count = 0
+        signals.append(data)
+    big_signal = None
+    first = True
+    for signal in signals:
+        signal = signal.ravel()
+        if first:
+            big_signal = np.trim_zeros(signal)
+            first = False
+        else:
+            signal = np.trim_zeros(signal)
+            big_signal = np.concatenate((big_signal, signal))
+    plot_signal(big_signal, 15000000.0, .6)

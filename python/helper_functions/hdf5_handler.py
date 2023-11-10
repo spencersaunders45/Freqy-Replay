@@ -158,4 +158,4 @@ class HDF5Handler:
 
 if __name__ == "__main__":
     hdf5_handler = HDF5Handler()
-    hdf5_handler.plot_signal('priming_signals', 'signal2')
+    hdf5_handler.plot_signal('testy', 'signal97')

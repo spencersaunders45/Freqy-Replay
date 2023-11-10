@@ -174,7 +174,7 @@ def process_signal(
 
 class PacketDetect:
     def __init__(
-        self, stream_q: mp.Queue, threshold: float, cutoff: int, packet_q: mp.Queue, packet_slack: int
+        self, stream_q: mp.Queue, threshold: float, cutoff: int, packet_q: mp.Queue, packet_slack: int, priming_threshold: float
     ):
         """A class that handles detecting when a signal is part of a packet.
 
@@ -199,6 +199,7 @@ class PacketDetect:
         self.threshold: float = threshold
         self.cutoff: int = cutoff
         self.packet_slack: int = packet_slack
+        self.priming_threshold = priming_threshold
         self.packet: np.ndarray = None
         self.carryover: int = None
         self.run = True
@@ -218,7 +219,7 @@ class PacketDetect:
             for chunk in signal_chunks:
                 self.stream_q.put(chunk)
         self.stream_q.put("DONE")
-        self.__find_packets()
+        self.__find_packets(True)
         # Clean out packet_q of dummy data
         while True:
             data = self.packet_q.get()
@@ -227,7 +228,7 @@ class PacketDetect:
                     break
         print("packet_detect preped")
 
-    def __find_packets(self) -> None:
+    def __find_packets(self, priming: bool = False) -> None:
         """Decides when a signal is part of a packet."""
         count = 0
         while self.run:
@@ -240,9 +241,14 @@ class PacketDetect:
             if type(signal) == str:
                 self.packet_q.put("DONE")
                 break
-            all_packets, end_of_packet_reached, self.carryover = process_signal(
-                signal, self.threshold, self.cutoff, self.packet, self.carryover, self.packet_slack
-            )
+            if not priming:
+                all_packets, end_of_packet_reached, self.carryover = process_signal(
+                    signal, self.threshold, self.cutoff, self.packet, self.carryover, self.packet_slack
+                )
+            else:
+                all_packets, end_of_packet_reached, self.carryover = process_signal(
+                    signal, self.priming_threshold, self.cutoff, self.packet, self.carryover, self.packet_slack
+                )
             if not all_packets:
                 continue
             if len(all_packets) > 0 and end_of_packet_reached:

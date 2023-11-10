@@ -43,7 +43,9 @@ class PacketSaver:
                 else:
                     continue
             for packet in all_packets:
-                packet_length_in_time = np.arange(packet.size) / self.sample_rate
-                self.hdf5.save_signal(packet, packet.size, self.center_frequency, packet_length_in_time, self.threshold, self.file_name)
+                if packet.size < 5:
+                    continue
+                packet_length_in_time = packet.size / self.sample_rate
+                self.hdf5.save_signal(packet, packet.size, self.center_frequency, packet_length_in_time, self.threshold, self.sample_rate, self.file_name)
                 print("saved packet")
         print("EXITED PACKET_SAVER")
