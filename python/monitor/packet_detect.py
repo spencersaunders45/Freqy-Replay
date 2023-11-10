@@ -50,7 +50,6 @@ def process_signal(
         - int: Indicates how many indexes where below the threshold on the continuing packet
         - bool: Indicates if the first two packets in the list need to be concatenated.
     """
-    # print("here")
     # Skips if signal is None
     if signal == None:
         return (None, True, 0)
@@ -150,8 +149,6 @@ def process_signal(
                 all_packets.append(np.concatenate((packet, signal[: threshold_list[cutoff_list_value]])))
             elif i == 0 and packet_finished:
                 # print("I")
-                # print(cutoff_list)
-                # print(cutoff_list_value)
                 all_packets.append(
                     signal[threshold_list[0] : threshold_list[cutoff_list_value]]
                 )
@@ -210,6 +207,7 @@ class PacketDetect:
         print("Preparing packet_detect")
         hdf5 = HDF5Handler()
         primer_signals = list()
+        primer_signals.append(hdf5.get_signal('priming_signals', 'signal0'))
         primer_signals.append(hdf5.get_signal('priming_signals', 'signal1'))
         primer_signals.append(hdf5.get_signal('priming_signals', 'signal2'))
         primer_signals.append(hdf5.get_signal('priming_signals', 'signal3'))
@@ -222,9 +220,7 @@ class PacketDetect:
         self.stream_q.put("DONE")
         self.__find_packets()
         # Clean out packet_q of dummy data
-        timeout = 0
         while True:
-            print("AAAA")
             data = self.packet_q.get()
             if type(data) == str:
                 if data == "DONE":

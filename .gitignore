@@ -1,5 +1,4 @@
-# Files
-*.hdf5
+# Other files
 sandbox.py
 *.drawio
 *.drawio.bkp
@@ -11,3 +10,7 @@ uhd
 .pytest_cache
 docs
 .venv
+
+# HDF5 files
+!priming_signals.hdf5
+*.hdf5

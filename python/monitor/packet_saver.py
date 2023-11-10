@@ -17,7 +17,7 @@ from helper_functions.hdf5_handler import HDF5Handler
 
 
 class PacketSaver:
-    def __init__(self, file_name: str, packet_q: mp.Queue, hdf5:HDF5Handler, center_frequency:float, sample_rate: float):
+    def __init__(self, file_name: str, packet_q: mp.Queue, hdf5:HDF5Handler, center_frequency:float, sample_rate: float, threshold: float):
         """Saves off packets into HDF5 files.
 
         Arguments:
@@ -30,6 +30,7 @@ class PacketSaver:
         self.hdf5 = hdf5
         self.center_frequency = center_frequency
         self.sample_rate = sample_rate
+        self.threshold = threshold
         self.dataset_count = 0
         self.run = True
 
@@ -43,6 +44,6 @@ class PacketSaver:
                     continue
             for packet in all_packets:
                 packet_length_in_time = np.arange(packet.size) / self.sample_rate
-                self.hdf5.save_signal(packet, packet.size, self.center_frequency, packet_length_in_time, self.file_name)
+                self.hdf5.save_signal(packet, packet.size, self.center_frequency, packet_length_in_time, self.threshold, self.file_name)
                 print("saved packet")
         print("EXITED PACKET_SAVER")

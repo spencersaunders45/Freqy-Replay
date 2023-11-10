@@ -8,6 +8,9 @@ from datetime import date, datetime
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 SIGNALS_DIR = f"{FILE_DIR}/../captured_signals/"
 PYTHON_DIR = f"{FILE_DIR}/../"
+sys.path.insert(0, PYTHON_DIR)
+
+from tools.plot_signal import plot_signal
 
 """
 TODO: Add name and size metadata to datasets
@@ -31,6 +34,8 @@ class HDF5Handler:
         signal_size: float,
         frequency: float,
         packet_length_of_time: float,
+        threshold: float,
+        sample_rate: float,
         file_name: str = "default",
     ) -> None:
         """Saves captured signals into a hdf5 file.
@@ -65,7 +70,9 @@ class HDF5Handler:
             dataset.attrs.create("time_captured", datetime.now().time().strftime('%H:%M:%S'))
             dataset.attrs.create("signal_size_bytes", signal_size)
             dataset.attrs.create("signal_length_seconds", packet_length_of_time)
-            dataset.attrs.create("center_frequency", frequency)
+            dataset.attrs.create("threshold", threshold)
+            dataset.attrs.create("center_frequency", frequency),
+            dataset.attrs.create("sample_rate", sample_rate)
             f.close()
         except Exception as e:
             print(e)
@@ -92,6 +99,15 @@ class HDF5Handler:
             print(e)
             print(traceback.format_exc())
             raise
+
+    def plot_signal(self, file_name: str, dataset: str) -> None:
+        f: Group = h5py.File(f"{SIGNALS_DIR}{file_name}.hdf5", "r")
+        file_data = f[dataset]
+        signal = file_data[:]
+        threshold = file_data.attrs['threshold']
+        sample_rate = file_data.attrs['sample_rate']
+        f.close()
+        plot_signal(signal, sample_rate, threshold)
 
     def display_metadata(self, file_name: str) -> None:
         """Gets the metadata of a file.
@@ -142,21 +158,4 @@ class HDF5Handler:
 
 if __name__ == "__main__":
     hdf5_handler = HDF5Handler()
-    random_words = list()
-    f = open(f"{PYTHON_DIR}/testing/random_words.txt")
-    for line in f:
-        random_words.append(line.strip())
-    f.close()
-    for _ in range(5):
-        word1 = random_words[randint(0, len(random_words) - 1)]
-        word2 = random_words[randint(0, len(random_words) - 1)]
-        file_name = f"{word1}-{word2}"
-        for i in range(5):
-            list_size = randint(100, 500)
-            signal = np.random.randint(-7, 7, list_size)
-            hdf5_handler.save_signal(
-                signal, signal.nbytes, 915000000.0, file_name
-            )
-        # hdf5_handler.view_datasets(file_name)
-        # print()
-    hdf5_handler.display_all_files()
+    hdf5_handler.plot_signal('priming_signals', 'signal2')

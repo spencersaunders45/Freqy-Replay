@@ -50,17 +50,21 @@ class Stream:
         # TODO: Add setting to customize size of queues
         self.stream_q = mp.Queue(self.queue_size)
         self.packet_queue = mp.Queue(self.queue_size)
+        # Signal done
+        self.keep_going: bool = True
 
     def __sigint_handler(self, sig_num, frame):
-        self.stream_q.put("FINISHED")
+        self.keep_going = False
+        self.stream_q.put("DONE")
 
     def launch(self) -> None:
+        signal.signal(signal.SIGINT, self.__sigint_handler)
         packet_detect = PacketDetect(self.stream_q, self.threshold, self.cutoff, self.packet_queue, self.packet_slack)
-        packet_saver = PacketSaver(self.file_name, self.packet_queue, self.hdf5, self.center_freq, self.sample_rate)
+        packet_saver = PacketSaver(self.file_name, self.packet_queue, self.hdf5, self.center_freq, self.sample_rate, self.threshold)
         packet_detect_p = mp.Process(target=packet_detect.start_packet_detect)
         packet_saver_p = mp.Process(target=packet_saver.start)
         packet_detect_p.start()
-        sleep(20)
+        sleep(15)
         packet_saver_p.start()
         self.stream_rx_data()
 
@@ -70,7 +74,7 @@ class Stream:
         print("SDR finished setup")
         heartbeat = 0
         kill_count: int = 0
-        while True:
+        while self.keep_going:
             data = self.sdr.rx_data()
             # Waits for queue to empty if it fills
             if self.stream_q.full():
@@ -89,7 +93,7 @@ class Stream:
             if self.max_loops:
                 kill_count += 1
                 if kill_count > self.max_loops:
-                    self.stream_q.put("FINISHED")
+                    self.stream_q.put("DONE")
                     break
         print("EXITED STREAMER")
 
