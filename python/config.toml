@@ -15,11 +15,9 @@ interval = 1.0                  # The waittime before another packet will be sen
 threshold = 50.0                # The value a signal must be above to be considered a packet
 cutoff = 100                    # The number of indexes before a packet will be considered ended.
 packet_slack = 100              # The number of indexes that will be added to the beginning and ending of the discovered packet
-
-min_packet_size = 250           # Determins how many index's need to be above the threshold to not be thrown out.
-max_count = 10000000            #? what was this...
-listen_time = 0.3               #? what was this...
-pool_size = 3                   # number of processes running packet_detect #! May not use if one process is fast enough
+queue_size = 130                 # The 
+file_name = "testy"
+max_loops = "None"
 
 
 

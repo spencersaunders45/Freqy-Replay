@@ -2,9 +2,6 @@ import numpy as np
 from time import sleep
 import os, traceback, uhd
 
-USER = os.environ["USER"]
-LIB_PATH = f"/home/{USER}/uhd/install/local/lib/python3.10/dist-packages"
-
 
 class SDR:
     """Sets up the USRP to be used. Also provided methods to TX and RX."""
@@ -86,7 +83,7 @@ class SDR:
             # Set RX gain
             self._usrp_device.set_rx_gain(self._rx_gain, 0)
             self._usrp_device.set_rx_antenna("TX/RX", 0)
-            # Setup the stream buffer and recieve buffer
+            # Setup the stream buffer and receive buffer
             st_args = uhd.usrp.StreamArgs("fc32", "sc16")
             st_args.channels = [0]
             # Setup _rx_streamer
@@ -107,7 +104,7 @@ class SDR:
         self._tx_streamer.send(np.zeros(10, dtype=np.complex64), self._tx2_meta_data)
 
     def rx_data(self) -> np.ndarray:
-        """Recieve data from the USRP"""
+        """Receive data from the USRP"""
         self._recv_buffer = np.zeros(
             (1, self._rx_streamer.get_max_num_samps() * 10), dtype=np.complex64
         )
@@ -120,6 +117,10 @@ class SDR:
 if __name__ == "__main__":
     sdr = SDR(15000000.0, 2400000000.0, 70, 74, None)
     sleep(1)
-    print("attempting to RX")
-    data = sdr.rx_data()
-    print(data)
+    count = 0
+    while True:
+        data = sdr.rx_data()
+        print(count)
+        count += 1
+        if count > 5000:
+            count = 0

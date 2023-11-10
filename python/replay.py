@@ -73,11 +73,6 @@ class FreqyReplay:
             print("Something when wrong. Mode was not found")
             print(traceback.format_exc())
 
-    def __sigint_handler(self, sig_num, frame):
-        for process in self.all_processes:
-            process.kill()
-        print("ENDED")
-
     def freqy_attack(self):
         """Starts a replay attack."""
         packet:np.ndarray = self.hdf5.get_signal(self.file, self.dataset)

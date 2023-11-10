@@ -50,7 +50,7 @@ def process_signal(
         - int: Indicates how many indexes where below the threshold on the continuing packet
         - bool: Indicates if the first two packets in the list need to be concatenated.
     """
-    print()
+    # print("here")
     # Skips if signal is None
     if signal == None:
         return (None, True, 0)
@@ -85,7 +85,7 @@ def process_signal(
     # If there is no packet and there is no cutoff found
     if packet == None:
         if cutoff_list.size == 0:
-            print("A")
+            # print("A")
             return (
                 [signal[threshold_list[0] : threshold_list[-1]]],
                 end_of_packet_reached,
@@ -95,19 +95,19 @@ def process_signal(
             cutoff_list_value: int = cutoff_list[i]
             # Find the first packet
             if i == 0:
-                print("B") #! WORKING
+                # print("B") #! WORKING
                 all_packets.append(
                     signal[threshold_list[0] : threshold_list[cutoff_list_value]]
                 )
             # Find the last packet
             elif i == cutoff_list.size:
-                print("C") #! WORKING
+                # print("C") #! WORKING
                 all_packets.append(
                     signal[threshold_list[cutoff_list[-1]] : threshold_list[-1]+1]
                 )
             # Find all other packets
             else:
-                print("D") #! WORKING
+                # print("D") #! WORKING
                 last_cutoff_list_value: int = cutoff_list[i - 1]
                 all_packets.append(
                     signal[
@@ -119,14 +119,14 @@ def process_signal(
         return (all_packets, end_of_packet_reached, new_carryover)
     else:
         if cutoff_list.size == 0 and end_of_packet_reached:
-            print("E")
+            # print("E")
             return (
                 [signal[threshold_list[0] : threshold_list[-1]]],
                 end_of_packet_reached,
                 new_carryover
             )
         elif cutoff_list.size == 0 and not end_of_packet_reached:
-            print("F") #! WORKING
+            # print("F") #! WORKING
             joined_signal: np.ndarray = np.concatenate((packet, signal))
             return (
                 [joined_signal],
@@ -136,7 +136,7 @@ def process_signal(
         # Check if the carryover packet ended or if it continues into this signal
         packet_finished: bool = False
         if (threshold_list[0] + carryover) > cutoff:
-            print("F")
+            # print("G")
             all_packets.append(packet)
             packet_finished = True
         # Find all packets
@@ -146,24 +146,24 @@ def process_signal(
             cutoff_list_value: int = cutoff_list[i]
             # Find the first packet
             if i == 0 and not packet_finished:
-                print("G")
+                # print("H")
                 all_packets.append(np.concatenate((packet, signal[: threshold_list[cutoff_list_value]])))
             elif i == 0 and packet_finished:
-                print("H")
-                print(cutoff_list)
-                print(cutoff_list_value)
+                # print("I")
+                # print(cutoff_list)
+                # print(cutoff_list_value)
                 all_packets.append(
                     signal[threshold_list[0] : threshold_list[cutoff_list_value]]
                 )
             # Find the last packet
             elif i == cutoff_list.size:
-                print("I")
+                # print("J")
                 all_packets.append(
                     signal[threshold_list[cutoff_list[-1]] : threshold_list[-1]+1]
                 )
             # Find all other packets
             else:
-                print("J")
+                # print("K")
                 last_cutoff_list_value: int = cutoff_list[i - 1]
                 all_packets.append(
                     signal[
@@ -206,13 +206,43 @@ class PacketDetect:
         self.carryover: int = None
         self.run = True
 
-    def start(self) -> None:
+    def __prime_packet_detect(self) -> None:
+        print("Preparing packet_detect")
+        hdf5 = HDF5Handler()
+        primer_signals = list()
+        primer_signals.append(hdf5.get_signal('priming_signals', 'signal1'))
+        primer_signals.append(hdf5.get_signal('priming_signals', 'signal2'))
+        primer_signals.append(hdf5.get_signal('priming_signals', 'signal3'))
+        # Runs the jit function with dummy data to compile it before running
+        # real data through it
+        for signal in primer_signals:
+            signal_chunks = np.array_split(signal, 40)
+            for chunk in signal_chunks:
+                self.stream_q.put(chunk)
+        self.stream_q.put("DONE")
+        self.__find_packets()
+        # Clean out packet_q of dummy data
+        timeout = 0
+        while True:
+            print("AAAA")
+            data = self.packet_q.get()
+            if type(data) == str:
+                if data == "DONE":
+                    break
+        print("packet_detect preped")
+
+    def __find_packets(self) -> None:
         """Decides when a signal is part of a packet."""
+        count = 0
         while self.run:
+            count += 1
+            if count > 5000:
+                print("packet_detect still alive")
+                count = 0
             signal = self.stream_q.get()
             start_time = time()
             if type(signal) == str:
-                q_2.put("FINISHED")
+                self.packet_q.put("DONE")
                 break
             all_packets, end_of_packet_reached, self.carryover = process_signal(
                 signal, self.threshold, self.cutoff, self.packet, self.carryover, self.packet_slack
@@ -226,51 +256,16 @@ class PacketDetect:
             elif len(all_packets) > 0 and not end_of_packet_reached:
                 self.packet = all_packets.pop()
                 self.packet_q.put(all_packets)
-            print(f'TIME: {time() - start_time}')
-        return
+            # print(f'TIME: {time() - start_time}')
+        print("EXITED PACKET_DETECT")
+
+    def start_packet_detect(self) -> None:
+        self.__prime_packet_detect()
+        self.__find_packets()
 
 if __name__ == '__main__':
-    # Prep PacketDetect
-    hdf5 = HDF5Handler()
-    signal = hdf5.get_signal('test-5-packets-2.4ghz', 'signal7')
+    
     q_1 = mp.Queue()
     q_2 = mp.Queue()
-    signal_chunks = np.array_split(signal, 40) #40 for sizes 25000
-    # plot_signal(signal_chunks[8], 15000000.0, 1.5)
-    # exit(0)
-    # Put signals into Q
-    for chunk in signal_chunks:
-        q_1.put(chunk)
-    q_1.put("FINISHED")
-    # Start packet detect process
     packet_d = PacketDetect(q_1, 1.6, 500, q_2, 100.0)
-    packet_p = mp.Process(target=packet_d.start)
-    packet_p.start()
-    packet_p.join()
-    # Get all the packets returned
-    print('!!!!!!!!!!!!!!!!!!!!!!')
-    packets = list()
-    while True:
-        packet:tuple = q_2.get()
-        print(packet)
-        if type(packet) == str:
-            break
-        else:
-            packets.append(packet)
-    # View the packet information
-    total = 0
-    print(f'ALL PACKETS: {len(packets)}')
-    for packet_list in packets:
-        print(len(packet_list))
-        for packet in packet_list:
-            print('====================')
-            if not packet.any():
-                print(packet)
-                continue
-            print(f'SIZE: {packet.size}')
-            total += packet.size
-            abs_packet = np.abs(packet)
-            print(f'MAX: {np.max(abs_packet)}')
-            print(f'MIN: {np.min(abs_packet)}')
-            plot_signal(packet, 15000000.0, 1.6)
-    # packet_p.kill()
+    packet_d.start_packet_detect()

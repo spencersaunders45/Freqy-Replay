@@ -30,6 +30,7 @@ class HDF5Handler:
         signal: np.ndarray,
         signal_size: float,
         frequency: float,
+        packet_length_of_time: float,
         file_name: str = "default",
     ) -> None:
         """Saves captured signals into a hdf5 file.
@@ -63,6 +64,7 @@ class HDF5Handler:
             dataset.attrs.create("date_captured", date.today().strftime("%d-%b-%Y"))
             dataset.attrs.create("time_captured", datetime.now().time().strftime('%H:%M:%S'))
             dataset.attrs.create("signal_size_bytes", signal_size)
+            dataset.attrs.create("signal_length_seconds", packet_length_of_time)
             dataset.attrs.create("center_frequency", frequency)
             f.close()
         except Exception as e:
