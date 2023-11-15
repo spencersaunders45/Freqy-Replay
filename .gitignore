@@ -1,7 +1,15 @@
-# Files
-
+# Other files
+sandbox.py
+*.drawio
+*.drawio.bkp
 
 # Folders
 .vscode
 __pycache__
 uhd
+.pytest_cache
+docs
+.venv
+
+# HDF5 files
+*.hdf5
