@@ -7,10 +7,12 @@ import numpy as np
 import argparse, traceback
 import sys, os
 import signal
+import queue
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
-ROOT_DIR = f"{FILE_DIR}/../"
-sys.path.insert(0, ROOT_DIR)
+PYTHON_DIR = f"{FILE_DIR}/../"
+sys.path.insert(0, PYTHON_DIR)
+TOML_FILE = f'{PYTHON_DIR}/config.toml'
 
 from helper_functions.uhd_interface import SDR
 from helper_functions.hdf5_handler import HDF5Handler
@@ -19,9 +21,9 @@ from monitor.packet_detect import PacketDetect
 from helper_functions.plot_signal import plot_signal
 
 
-class Stream:
+class Monitor:
     # TODO: Add parameter to add a signal to the queue to stop the process
-    def __init__(self, max_loops: int = None):
+    def __init__(self):
         """Monitors the airwaves for a target frequency
 
         Arguments:
@@ -29,9 +31,8 @@ class Stream:
 
             stream_q (mp.Queue): A shared queue to feed packet_detect signals.
         """
-        self.max_loops = max_loops
         self.hdf5: HDF5Handler = HDF5Handler()
-        self.settings: TOMLDocument = TOMLFile("../config.toml").read()
+        self.settings: TOMLDocument = TOMLFile(TOML_FILE).read()
         # TOML settings
         self.toml_radio: dict = self.settings.get("RADIO")
         self.toml_monitor: dict = self.settings.get("MONITOR")
@@ -57,14 +58,24 @@ class Stream:
         # Signal done
         self.keep_going: bool = True
 
+    def __empty_q(self) -> None:
+        while True:
+            try:
+                self.stream_q.get(timeout=0.1)
+            except queue.Empty:
+                break
+
     def __sigint_handler(self, sig_num, frame):
         self.keep_going = False
-        self.stream_q.put("DONE", timeout=1)
-        sleep(5)
+        sleep(.05)
+        self.__empty_q()
+        self.stream_q.put("DONE", timeout=.05)
+        self.packet_detect_p.kill()
+        self.packet_saver_p.kill()
         exit(0)
 
     def launch(self) -> None:
-        # signal.signal(signal.SIGINT, self.__sigint_handler)
+        signal.signal(signal.SIGINT, self.__sigint_handler)
         if self.view_sample:
             self.view_signals()
             exit(0)
@@ -83,11 +94,11 @@ class Stream:
             self.sample_rate,
             self.threshold,
         )
-        packet_detect_p = mp.Process(target=packet_detect.start_packet_detect)
-        packet_saver_p = mp.Process(target=packet_saver.start)
-        packet_detect_p.start()
-        packet_saver_p.start()
-        self.stream_rx_data()
+        self.packet_detect_p = mp.Process(target=packet_detect.start_packet_detect)
+        self.packet_saver_p = mp.Process(target=packet_saver.start)
+        self.packet_detect_p.start()
+        self.packet_saver_p.start()
+        self.__stream_rx_data()
 
     def view_signals(self) -> None:
         self.sdr = SDR(self.sample_rate, self.center_freq, self.tx_gain, self.rx_gain)
@@ -106,7 +117,7 @@ class Stream:
                 big_signal = np.concatenate((big_signal, signal))
         plot_signal(big_signal, self.sample_rate, self.threshold)
 
-    def stream_rx_data(self) -> None:
+    def __stream_rx_data(self) -> None:
         """Streams signals captured from the SDR"""
         self.sdr = SDR(self.sample_rate, self.center_freq, self.tx_gain, self.rx_gain)
         print("SDR finished setup")
@@ -135,6 +146,3 @@ class Stream:
                     break
         print("EXITED STREAMER")
 
-
-if __name__ == "__main__":
-    Stream().launch()

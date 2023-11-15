@@ -58,7 +58,3 @@ class Attack:
                     break
             sleep(self.interval)
         print("EXITING REPLAY ATTACK")
-
-
-if __name__ == "__main__":
-    Attack().replay()
