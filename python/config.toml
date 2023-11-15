@@ -9,7 +9,7 @@ uhd_id = "None"
 file = "magpie-test2"                   # The file name of the packet to be used is located
 dataset = "signal9"            # The dataset name of the packet to be used
 repeat = 20                      # The number of times the replay signal will repeat
-interval = 0.5                  # The waittime before another packet will be sent
+interval = 0.5                  # The wait time before another packet will be sent
 
 [MONITOR]
 view_sample = false
@@ -20,17 +20,13 @@ packet_slack = 100              # The number of indexes that will be added to th
 queue_size = 170                # The maximum size a queue can be
 file_name = "magpie-test2"             # The name of the file where packets are to be saved
 max_loops = 5000              # The max number of times to collect signals
-min_packet_size = false        # The minimun number of indexes a packet must have to be kept
+min_packet_size = false        # The minimum number of indexes a packet must have to be kept
 
 [FILTER]
-byte_size = false
-seconds = false
-center_freq = false
-sample_rate = false
-
-[PLOT]
-file = "magpie-test2.hdf5"
-dataset = "signal9"
+byte_size = false               #(int)
+seconds = false                 #(float)
+center_freq = false             #(float)
+sample_rate = false             #(float)
 
 
 
@@ -42,7 +38,7 @@ dataset = "signal9"
 
 
 
-# center_frequncy: 2.4 GHz -> 2400000000.0
+# center_frequency: 2.4 GHz -> 2400000000.0
 
 # center_frequency: 915 MHz -> 915000000.0
 # sample_rate:      15 MHz

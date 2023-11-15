@@ -5,11 +5,11 @@ from time import sleep, time
 import os, sys
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
-PYTHON_DIR = f'{FILE_DIR}/../'
+PYTHON_DIR = f"{FILE_DIR}/../"
 sys.path.insert(0, PYTHON_DIR)
 
 from helper_functions.hdf5_handler import HDF5Handler
-from tools.plot_signal import plot_signal
+from helper_functions.plot_signal import plot_signal
 
 
 @njit(cache=True, fastmath=True)
@@ -20,7 +20,7 @@ def process_signal(
     packet: np.ndarray,
     carryover: int,
     packet_slack: float,
-    last_signal: np.ndarray
+    last_signal: np.ndarray,
 ) -> tuple:
     """Decides if the signal is part of a packet
 
@@ -109,13 +109,20 @@ def process_signal(
             if i == 0:
                 # print("B") #! WORKING
                 all_packets.append(
-                    signal[threshold_list[0] - packet_slack : threshold_list[cutoff_list_value]]
+                    signal[
+                        threshold_list[0]
+                        - packet_slack : threshold_list[cutoff_list_value]
+                    ]
                 )
             # Find the last packet
             elif i == cutoff_list.size:
                 # print("C") #! WORKING
                 all_packets.append(
-                    signal[threshold_list[cutoff_list[-1]] - packet_slack : threshold_list[-1]+1]
+                    signal[
+                        threshold_list[cutoff_list[-1]]
+                        - packet_slack : threshold_list[-1]
+                        + 1
+                    ]
                 )
             # Find all other packets
             else:
@@ -123,9 +130,8 @@ def process_signal(
                 last_cutoff_list_value: int = cutoff_list[i - 1]
                 all_packets.append(
                     signal[
-                        threshold_list[last_cutoff_list_value + 1] - packet_slack : threshold_list[
-                            cutoff_list_value
-                        ]
+                        threshold_list[last_cutoff_list_value + 1]
+                        - packet_slack : threshold_list[cutoff_list_value]
                     ]
                 )
         return (all_packets, end_of_packet_reached, new_carryover)
@@ -138,7 +144,7 @@ def process_signal(
                 return (
                     [signal[threshold_list[0] : threshold_list[-1] + packet_slack]],
                     end_of_packet_reached,
-                    new_carryover
+                    new_carryover,
                 )
             else:
                 if last_signal.any():
@@ -146,16 +152,12 @@ def process_signal(
                 return (
                     [signal[threshold_list[0] : threshold_list[-1] + packet_slack]],
                     end_of_packet_reached,
-                    new_carryover
+                    new_carryover,
                 )
         elif cutoff_list.size == 0 and not end_of_packet_reached:
             # print("F") #! WORKING
             joined_signal: np.ndarray = np.concatenate((packet, signal))
-            return (
-                [joined_signal],
-                end_of_packet_reached,
-                new_carryover
-            )
+            return ([joined_signal], end_of_packet_reached, new_carryover)
         # Check if the carryover packet ended or if it continues into this signal
         packet_finished: bool = False
         if (threshold_list[0] + carryover) > cutoff:
@@ -170,7 +172,11 @@ def process_signal(
             # Find the first packet
             if i == 0 and not packet_finished:
                 # print("H")
-                all_packets.append(np.concatenate((packet, signal[: threshold_list[cutoff_list_value]])))
+                all_packets.append(
+                    np.concatenate(
+                        (packet, signal[: threshold_list[cutoff_list_value]])
+                    )
+                )
             elif i == 0 and packet_finished:
                 # print("I")
                 all_packets.append(
@@ -180,7 +186,11 @@ def process_signal(
             elif i == cutoff_list.size:
                 # print("J")
                 all_packets.append(
-                    signal[threshold_list[cutoff_list[-1]] - packet_slack : threshold_list[-1]+1]
+                    signal[
+                        threshold_list[cutoff_list[-1]]
+                        - packet_slack : threshold_list[-1]
+                        + 1
+                    ]
                 )
             # Find all other packets
             else:
@@ -188,9 +198,8 @@ def process_signal(
                 last_cutoff_list_value: int = cutoff_list[i - 1]
                 all_packets.append(
                     signal[
-                        threshold_list[last_cutoff_list_value + 1] - packet_slack : threshold_list[
-                            cutoff_list_value
-                        ]
+                        threshold_list[last_cutoff_list_value + 1]
+                        - packet_slack : threshold_list[cutoff_list_value]
                     ]
                 )
         return (all_packets, end_of_packet_reached, new_carryover)
@@ -198,7 +207,12 @@ def process_signal(
 
 class PacketDetect:
     def __init__(
-        self, stream_q: mp.Queue, threshold: float, cutoff: int, packet_q: mp.Queue, packet_slack: int
+        self,
+        stream_q: mp.Queue,
+        threshold: float,
+        cutoff: int,
+        packet_q: mp.Queue,
+        packet_slack: int,
     ):
         """A class that handles detecting when a signal is part of a packet.
 
@@ -232,10 +246,10 @@ class PacketDetect:
         print("Preparing packet_detect")
         hdf5 = HDF5Handler()
         primer_signals = list()
-        primer_signals.append(hdf5.get_signal('priming_signals', 'signal0'))
-        primer_signals.append(hdf5.get_signal('priming_signals', 'signal1'))
-        primer_signals.append(hdf5.get_signal('priming_signals', 'signal2'))
-        primer_signals.append(hdf5.get_signal('priming_signals', 'signal3'))
+        primer_signals.append(hdf5.get_signal("priming_signals", "signal0"))
+        primer_signals.append(hdf5.get_signal("priming_signals", "signal1"))
+        primer_signals.append(hdf5.get_signal("priming_signals", "signal2"))
+        primer_signals.append(hdf5.get_signal("priming_signals", "signal3"))
         # Runs the jit function with dummy data to compile it before running
         # real data through it
         for signal in primer_signals:
@@ -270,7 +284,13 @@ class PacketDetect:
                 break
             # Porcesses the signal
             all_packets, end_of_packet_reached, self.carryover = process_signal(
-                signal, self.threshold, self.cutoff, self.packet, self.carryover, self.packet_slack, self.last_signal
+                signal,
+                self.threshold,
+                self.cutoff,
+                self.packet,
+                self.carryover,
+                self.packet_slack,
+                self.last_signal,
             )
             self.last_signal = signal
             if not all_packets:
@@ -289,8 +309,8 @@ class PacketDetect:
         # self.__prime_packet_detect()
         self.__find_packets()
 
-if __name__ == '__main__':
-    
+
+if __name__ == "__main__":
     # q_1 = mp.Queue()
     # q_2 = mp.Queue()
     # packet_d = PacketDetect(q_1, 1.6, 500, q_2, 100.0, 1.5)

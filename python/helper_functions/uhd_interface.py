@@ -3,10 +3,10 @@ from time import sleep
 import os, traceback, uhd, sys
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
-PYTHON_DIR = f'{FILE_DIR}/../'
+PYTHON_DIR = f"{FILE_DIR}/../"
 sys.path.insert(0, PYTHON_DIR)
 
-from tools.plot_signal import plot_signal
+from helper_functions.plot_signal import plot_signal
 
 
 class SDR:
@@ -138,4 +138,4 @@ if __name__ == "__main__":
         else:
             signal = np.trim_zeros(signal)
             big_signal = np.concatenate((big_signal, signal))
-    plot_signal(big_signal, 15000000.0, .6)
+    plot_signal(big_signal, 15000000.0, 0.6)

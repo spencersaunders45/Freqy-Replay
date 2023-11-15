@@ -6,10 +6,11 @@ from tomlkit.toml_file import TOMLFile
 from tomlkit.toml_document import TOMLDocument
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
-sys.path.insert(0,FILE_DIR)
+sys.path.insert(0, FILE_DIR)
 
 from helper_functions.uhd_interface import SDR
 from helper_functions.hdf5_handler import HDF5Handler
+
 
 class Attack:
     settings: TOMLDocument = TOMLFile("config.toml").read()
@@ -17,12 +18,12 @@ class Attack:
 
     def __init__(self):
         """Controls the replay attack.
-        
+
         Parameters:
             interval (float): The time to wait between each TX
-            
+
             packet (np.ndarray): The packet to be replayed.
-            
+
             sdr (SDR): The interface with the SDR.
         """
         self.toml_radio: dict = self.settings.get("RADIO")
@@ -45,7 +46,7 @@ class Attack:
         heartbeat = 0
         self.sdr = SDR(self.sample_rate, self.center_freq, self.tx_gain, self.rx_gain)
         self.packet = self.hdf5.get_signal(self.file, self.dataset)
-        print("STARTING REPLAAY ATTACK")
+        print("STARTING REPLAY ATTACK")
         while True:
             self.sdr.tx_data(self.packet)
             heartbeat += 1
@@ -59,5 +60,5 @@ class Attack:
         print("EXITING REPLAY ATTACK")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     Attack().replay()

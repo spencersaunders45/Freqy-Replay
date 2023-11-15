@@ -16,11 +16,12 @@ from helper_functions.uhd_interface import SDR
 from helper_functions.hdf5_handler import HDF5Handler
 from monitor.packet_saver import PacketSaver
 from monitor.packet_detect import PacketDetect
-from tools.plot_signal import plot_signal
+from helper_functions.plot_signal import plot_signal
+
 
 class Stream:
     # TODO: Add parameter to add a signal to the queue to stop the process
-    def __init__(self, max_loops:int = None):
+    def __init__(self, max_loops: int = None):
         """Monitors the airwaves for a target frequency
 
         Arguments:
@@ -67,8 +68,21 @@ class Stream:
         if self.view_sample:
             self.view_signals()
             exit(0)
-        packet_detect = PacketDetect(self.stream_q, self.threshold, self.cutoff, self.packet_queue, self.packet_slack)
-        packet_saver = PacketSaver(self.file_name, self.packet_queue, self.hdf5, self.center_freq, self.sample_rate, self.threshold)
+        packet_detect = PacketDetect(
+            self.stream_q,
+            self.threshold,
+            self.cutoff,
+            self.packet_queue,
+            self.packet_slack,
+        )
+        packet_saver = PacketSaver(
+            self.file_name,
+            self.packet_queue,
+            self.hdf5,
+            self.center_freq,
+            self.sample_rate,
+            self.threshold,
+        )
         packet_detect_p = mp.Process(target=packet_detect.start_packet_detect)
         packet_saver_p = mp.Process(target=packet_saver.start)
         packet_detect_p.start()
@@ -104,7 +118,7 @@ class Stream:
             if self.stream_q.full():
                 print("stream_q full")
                 while self.stream_q.qsize() != 0:
-                    sleep(.001)
+                    sleep(0.001)
                 print("stream_q empty")
                 continue
             self.stream_q.put(data)
@@ -120,6 +134,7 @@ class Stream:
                     self.stream_q.put("DONE")
                     break
         print("EXITED STREAMER")
+
 
 if __name__ == "__main__":
     Stream().launch()

@@ -3,7 +3,7 @@ from time import time
 import sys, os
 
 PYTHON_DIR = os.path.dirname(os.path.realpath(__file__))
-sys.path.insert(0,PYTHON_DIR)
+sys.path.insert(0, PYTHON_DIR)
 
 from helper_functions.hdf5_handler import HDF5Handler
 

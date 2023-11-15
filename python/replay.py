@@ -10,20 +10,21 @@ import argparse, traceback
 import sys, os
 import signal
 
-_HOME = os.path.isdir('HOME')
-if os.path.isdir(f'{_HOME}/uhd/install/lib/python3.8/site-packages'):
+_HOME = os.path.isdir("HOME")
+if os.path.isdir(f"{_HOME}/uhd/install/lib/python3.8/site-packages"):
     PYTHON_DIR = os.path.dirname(os.path.realpath(__file__))
-    sys.path.insert(0,PYTHON_DIR)
-    UHD = f'{_HOME}/uhd/install/lib/python3.8/site-packages'
+    sys.path.insert(0, PYTHON_DIR)
+    UHD = f"{_HOME}/uhd/install/lib/python3.8/site-packages"
     sys.path.insert(0, UHD)
 
 from helper_functions.uhd_interface import SDR
 from helper_functions.hdf5_handler import HDF5Handler
+
 # from helper_functions.freq_check import dominant_frequency
 from monitor.streaming import Stream
 from monitor.packet_saver import PacketSaver
 from monitor.packet_detect import PacketDetect
-from attack import Attack
+from attack.attack import Attack
 
 # sdr = SDR(15000000.0, 2400000000.0, 70, 74, None)
 
@@ -34,13 +35,12 @@ class FreqyReplay:
     settings: TOMLDocument = TOMLFile("config.toml").read()
     all_processes = list()
 
-    def __init__(self, mode: str, file_name:str = None):
+    def __init__(self, mode: str):
         """The main class that controls the processes and threads of the application.
 
         Arguments:
             mode (str): Defines if the radio will be in Attack or Monitor mode.
         """
-        self.file_name =  file_name
         # Get TOML key value pairs
         self.toml_radio: dict = self.settings.get("RADIO")
         self.toml_attack: dict = self.settings.get("ATTACK")
@@ -67,17 +67,18 @@ class FreqyReplay:
         self.seconds: str = self.toml_filter["seconds"]
         self.center_freq_filter: int = self.toml_filter["center_freq"]
         self.sample_rate_filter: float = self.toml_filter["sample_rate"]
-        # PLOT
-        self.plot_file: float = self.toml_plot["file"]
-        self.plot_dataset: float = self.toml_plot["dataset"]
         # Call the mode
         if mode == "attack":
-            self.sdr = SDR(self.sample_rate, self.center_freq, self.tx_gain, self.rx_gain)
+            self.sdr = SDR(
+                self.sample_rate, self.center_freq, self.tx_gain, self.rx_gain
+            )
             self.freqy_attack()
         elif mode == "monitor":
-            self.sdr = SDR(self.sample_rate, self.center_freq, self.tx_gain, self.rx_gain)
+            self.sdr = SDR(
+                self.sample_rate, self.center_freq, self.tx_gain, self.rx_gain
+            )
             self.freqy_monitor()
-        elif mode == 'n':
+        elif mode == "n":
             pass
         else:
             print("Something when wrong. Mode was not found")
@@ -85,7 +86,7 @@ class FreqyReplay:
 
     def freqy_attack(self):
         """Starts a replay attack."""
-        packet:np.ndarray = self.hdf5.get_signal(self.file, self.dataset)
+        packet: np.ndarray = self.hdf5.get_signal(self.file, self.dataset)
         Attack(self.interval, packet, self.sdr).replay()
 
     def freqy_monitor(self):
@@ -93,7 +94,9 @@ class FreqyReplay:
         streaming_q = mp.Queue(10)
         packet_q = mp.Queue(10)
         stream_p = Stream(self.sdr, streaming_q)
-        packet_detect_p = PacketDetect(streaming_q, self.threshold, self.cutoff, packet_q)
+        packet_detect_p = PacketDetect(
+            streaming_q, self.threshold, self.cutoff, packet_q
+        )
         packet_saver_p = PacketSaver(self.file, packet_q, self.hdf5, self.center_freq)
         # Processes
         self.all_processes.append(mp.Process(target=stream_p.start))
@@ -102,11 +105,10 @@ class FreqyReplay:
         for process in self.all_processes:
             process.start()
 
-
     def display_all_files(self):
         self.hdf5.display_all_files()
 
-    def view_file_meta_data(self):
+    def view_file_meta_data(self, file_name: str):
         if self.center_freq_filter:
             center_freq = self.center_freq_filter
         else:
@@ -123,33 +125,54 @@ class FreqyReplay:
             bytes_size = self.byte_size
         else:
             bytes_size = None
-        self.hdf5.display_metadata(self.file_name, bytes_size, seconds, center_freq, sample_rate)
+        self.hdf5.display_metadata(
+            file_name, bytes_size, seconds, center_freq, sample_rate
+        )
 
-    def plot_signal(self):
-        self.hdf5.plot_signal(self.plot_file, self.plot_dataset)
+    def plot_signal(self, file_name: str, dataset: str):
+        self.hdf5.plot_signal(file_name, dataset)
 
 
 if __name__ == "__main__":
     # freqy_replay = FreqyReplay()
     parser = argparse.ArgumentParser()
     # Add required arguments
-    parser.add_argument("mode", default=None, choices=['a', 'm', 'n'], help="a: attack mode, m: monitor mode, n: neither")
+    parser.add_argument(
+        "mode",
+        default=None,
+        choices=["a", "m", "n"],
+        help="a: attack mode, m: monitor mode, n: neither",
+    )
     # Add args
-    parser.add_argument('-v', '--view-files', default=None, help="View all signal files.", action="store_true")
-    parser.add_argument('-m', '--meta-data', default=None, help="View the meta data for a specific signal file.")
-    parser.add_argument('-p', '--plot-signal', default=None, help="Plots a given saved packet.", action="store_true")
+    parser.add_argument(
+        "-v",
+        "--view-files",
+        default=None,
+        help="View all signal files.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "-m",
+        "--meta-data",
+        default=None,
+        help="View the meta data for a specific signal file.",
+    )
+    parser.add_argument(
+        "-p", "--plot-signal", default=None, help="Plots a saved packet.", nargs=2
+    )
+    # TODO: Add feature to delete signals that are less than the passed parameters
     args = parser.parse_args()
-    
-    if args.mode == 'a':
-        FreqyReplay('attack')
-    elif args.mode == 'm':
-        FreqyReplay('monitor')
+
+    if args.mode == "a":
+        FreqyReplay("attack")
+    elif args.mode == "m":
+        FreqyReplay("monitor")
 
     if args.view_files:
-        FreqyReplay('n').display_all_files()
+        FreqyReplay("n").display_all_files()
 
     if args.meta_data:
-        FreqyReplay('n', args.meta_data).view_file_meta_data()
+        FreqyReplay("n").view_file_meta_data(args.meta_data)
 
     if args.plot_signal:
-        FreqyReplay('n').plot_signal()
+        FreqyReplay("n").plot_signal(args.plot_signal[0], args.plot_signal[1])
