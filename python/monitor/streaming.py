@@ -46,8 +46,8 @@ class Stream:
         self.packet_slack: int = self.toml_monitor["packet_slack"]
         self.queue_size: int = self.toml_monitor["queue_size"]
         self.file_name: int = self.toml_monitor["file_name"]
+        self.max_loops: int = self.toml_monitor["max_loops"]
         # Queues
-        # TODO: Add setting to customize size of queues
         self.stream_q = mp.Queue(self.queue_size)
         self.packet_queue = mp.Queue(self.queue_size)
         # Signal done
@@ -66,7 +66,6 @@ class Stream:
         packet_detect_p = mp.Process(target=packet_detect.start_packet_detect)
         packet_saver_p = mp.Process(target=packet_saver.start)
         packet_detect_p.start()
-        sleep(15)
         packet_saver_p.start()
         self.stream_rx_data()
 

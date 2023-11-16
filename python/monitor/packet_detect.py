@@ -262,12 +262,12 @@ class PacketDetect:
         print("EXITED PACKET_DETECT")
 
     def start_packet_detect(self) -> None:
-        self.__prime_packet_detect()
+        # self.__prime_packet_detect()
         self.__find_packets()
 
 if __name__ == '__main__':
     
     q_1 = mp.Queue()
     q_2 = mp.Queue()
-    packet_d = PacketDetect(q_1, 1.6, 500, q_2, 100.0)
-    packet_d.start_packet_detect()
+    packet_d = PacketDetect(q_1, 1.6, 500, q_2, 100.0, 1.5)
+    packet_d.prime_packet_detect()

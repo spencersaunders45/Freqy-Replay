@@ -120,7 +120,10 @@ class HDF5Handler:
             dataset: Dataset = f[key]
             print(f'\t{key}')
             for name, value in dataset.attrs.items():
-                print(f"\t\t{name}: {value}")
+                if name == "signal_length_seconds":
+                    print(f"\t\t{name}: {value:.10f}")
+                else:
+                    print(f"\t\t{name}: {value}")
             print()
         f.close()
 
