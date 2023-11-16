@@ -1,5 +1,5 @@
 [RADIO]
-center_freq = 2400000000.0
+center_freq = 915000000.0
 sample_rate = 15000000.0
 rx_gain = 74
 tx_gain = 70
@@ -12,22 +12,22 @@ repeat = 20                      # The number of times the replay signal will re
 interval = 0.5                  # The wait time before another packet will be sent
 
 [MONITOR]
-view_sample = true
+view_sample = false
 samples_to_collect = 500
 threshold = 2.0                 # The value a signal must be above to be considered a packet
 cutoff = 1000                    # The number of indexes before a packet will be considered ended.
 packet_slack = 100              # The number of indexes that will be added to the beginning and ending of the discovered packet
 queue_size = 170                # The maximum size a queue can be
 file_name = "magpie-test2"             # The name of the file where packets are to be saved
-max_loops = false              # The max number of times to collect signals
-min_packet_size = false        # The minimum number of indexes a packet must have to be kept
+max_loops = 0              # The max number of times to collect signals
+min_packet_size = 0        # The minimum number of indexes a packet must have to be kept
 
 [FILTER]
 apply_filter = false
-byte_size = false               #(int)
-seconds = false                 #(float)
-center_freq = false             #(float)
-sample_rate = false             #(float)
+byte_size = 0               #(int)
+seconds = 0.0009                 #(float)
+center_freq = 0             #(float)
+sample_rate = 0             #(float)
 
 
 

@@ -1,6 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
 import os, sys
+import signal
+import subprocess
+from subprocess import CompletedProcess
 from tomlkit.toml_file import TOMLFile
 from tomlkit.toml_document import TOMLDocument
 from tomlkit.items import Integer, String, Float, Array, Table
@@ -22,6 +25,12 @@ class Settings:
         self.master: tk.Frame = master
         self.tables: list = self.get_keys(self.config)
         self.__populate_toml_data()
+        self.__add_start_stop_buttons()
+    
+    def __terminat_processes(self) -> None:
+        """ Sends the Ctrl + c command to a running python process. """
+        # Send the kill signal to the process
+        self.replay_process.send_signal(signal.SIGINT)
     
     def __update_key_value(self, event, table: str, key: str, value: tk.Entry, value_type) -> None:
         """Updates the key value pair in the toml file.
@@ -69,3 +78,34 @@ class Settings:
                     p3=value_entry,
                     p4=value_type: self.__update_key_value(event, p1, p2, p3, p4)
                     )
+    
+    def __start_monitor(self) -> None:
+        """ Starts the monitoring process on the replay.py script. """
+        self.replay_process: subprocess.Popen = subprocess.Popen(['sudo', 'python3', 'replay.py', 'm'])
+        self.monitor_button.config(background='red', foreground='black', text="Stop Monitor", command=self.__stop_monitor)
+        self.attack_button.config(background='grey', foreground='black', state='disabled')
+    
+    def __start_attack(self) -> None:
+        """ Starts the monitoring process on the replay.py script. """
+        self.replay_process: subprocess.Popen = subprocess.Popen(['sudo', 'python3', 'replay.py', 'a'])
+        self.attack_button.config(background='red', foreground='black', text="Stop Attack", command=self.__stop_attack)
+        self.monitor_button.config(background='grey', foreground='black', state='disabled')
+    
+    def __stop_monitor(self) -> None:
+        """ Stops the monitor process and updates the buttons """
+        self.__terminat_processes()
+        self.monitor_button.config(background='green', foreground='black', text='Start Monitor', command=self.__start_monitor)
+        self.attack_button.config(background='green', foreground='black', state='normal')
+    
+    def __stop_attack(self) -> None:
+        """ Stops the monitor process and updates the buttons """
+        self.__terminat_processes()
+        self.attack_button.config(background='green', foreground='black', text='Start Attack', command=self.__start_attack)
+        self.monitor_button.config(background='green', foreground='black', state='normal')
+    
+    def __add_start_stop_buttons(self) -> None:
+        """ Adds the start stop buttons for running the replay attack. """
+        self.monitor_button: tk.Button = tk.Button(self.master, text="Start Monitor", command=self.__start_monitor, background='green', foreground='black')
+        self.monitor_button.pack()
+        self.attack_button: tk.Button = tk.Button(self.master, text="Start Attack", command=self.__start_attack, background='green', foreground='black')
+        self.attack_button.pack()

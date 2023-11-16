@@ -151,10 +151,11 @@ class HDF5Handler:
     def display_metadata(
         self,
         file_name: str,
-        byte_size: int = None,
-        seconds: float = None,
-        center_freq: float = None,
-        sample_rate: float = None,
+        byte_size: int,
+        seconds: float,
+        center_freq: float,
+        sample_rate: float,
+        apply_filter: bool,
     ) -> None:
         """Gets the metadata of a file.
 
@@ -181,7 +182,7 @@ class HDF5Handler:
                 dict_dataset[key][name] = value
         f.close()
         # Filter and print the dataset data
-        if byte_size or seconds or center_freq or sample_rate:
+        if apply_filter:
             for key in dict_dataset.keys():
                 if self.__filter_signals(
                     dict_dataset[key], byte_size, seconds, center_freq, sample_rate

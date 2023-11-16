@@ -5,6 +5,7 @@ from tomlkit.toml_document import TOMLDocument
 import multiprocessing as mp
 import sys, os
 import argparse
+import signal
 
 _HOME = os.path.isdir("HOME")
 if os.path.isdir(f"{_HOME}/uhd/install/lib/python3.8/site-packages"):
@@ -35,17 +36,23 @@ class FreqyReplay:
         # Get TOML key value pairs
         self.toml_filter: dict = self.settings.get("FILTER")
         # FILTER
+        self.apply_filter: bool = self.toml_filter["apply_filter"]
         self.byte_size: str = self.toml_filter["byte_size"]
         self.seconds: str = self.toml_filter["seconds"]
         self.center_freq_filter: int = self.toml_filter["center_freq"]
         self.sample_rate_filter: float = self.toml_filter["sample_rate"]
+    
+    def __sigint_handler(self, sig_num, frame):
+        exit(0)
 
     def attack(self):
         """Starts a replay attack."""
+        signal.signal(signal.SIGINT, self.__sigint_handler)
         self._attack.replay()
 
     def monitor(self):
         """Starts monitoring airwaves."""
+        signal.signal(signal.SIGINT, self.__sigint_handler)
         self._monitor.launch()
 
     def display_all_files(self):
@@ -77,7 +84,7 @@ class FreqyReplay:
             bytes_size = None
         
         self.hdf5.display_metadata(
-            file_name, bytes_size, seconds, center_freq, sample_rate
+            file_name, bytes_size, seconds, center_freq, sample_rate, self.apply_filter
         )
 
     def plot_signal(self, file_name: str, dataset: str):
