@@ -6,7 +6,7 @@ tx_gain = 70
 uhd_id = "None"
 
 [ATTACK]
-file = "magpie-test2"                   # The file name of the packet to be used is located
+file = "magpie-test2"			# The file name of the packet to be used is located
 dataset = "signal9"            # The dataset name of the packet to be used
 repeat = 20                      # The number of times the replay signal will repeat
 interval = 0.5                  # The wait time before another packet will be sent
