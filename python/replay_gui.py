@@ -30,6 +30,7 @@ class ReplayGUI:
         self.canvas.itemconfig(self.canvas_frame, width=event.width)
     
     def __create_settings_frame(self) -> None:
+        """ Creates the settings frame with a scrollable frame """
         self.canvas = tk.Canvas(self.notebook)
         self.scrollbar: tk.Scrollbar = tk.Scrollbar(
             self.notebook,

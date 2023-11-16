@@ -26,30 +26,34 @@ def process_signal(
 
     Arguments:
         signal (np.ndarray): The numpy array that carries the IQ packets of the
-            signal data.
+        signal data.
 
         threshold (float): The minimum value that a signal must exceed to be
-            considered part of a packet.
+        considered part of a packet.
 
         cutoff (int): The number of IQ values that are allowed to be under the
-            threshold and still be considered part of a packet.
+        threshold and still be considered part of a packet.
 
         packet (np.ndarray): Holds the pieces of collected signals that  contain
-            the packet information.
+        the packet information.
 
         carryover (int): If a packet is not finished being created then this
         will contain the value of the number of index's that were below the
         threshold when the signal ended (if any).
 
         packet_slack (int): The amount of indexes that will be added to the discoverd
-            packet to ensure the whole packet is captured.
+        packet to ensure the whole packet is captured.
+
+        last_signal (np.ndarray): Contains the data from the last signal in to 
+        concatenate the end of it if the beginning of a new signal is at the
+        start of the current signal. This ensures that the beginning of the
+        packet is being captured.
 
     Returns:
-        tuple (list[np.ndarray], bool, int, bool):
+        tuple (list[np.ndarray], bool, int):
         - list[np.ndarray]: A list containing all captured signals
         - bool: Indicates if the last packet in the list was completely captured.
         - int: Indicates how many indexes where below the threshold on the continuing packet
-        - bool: Indicates if the first two packets in the list need to be concatenated.
     """
     # Skips if signal is None
     if signal == None:
@@ -213,7 +217,7 @@ class PacketDetect:
         cutoff: int,
         packet_q: mp.Queue,
         packet_slack: int,
-    ):
+    ) -> None:
         """A class that handles detecting when a signal is part of a packet.
 
         Arguments:
@@ -240,49 +244,25 @@ class PacketDetect:
         self.last_signal = np.zeros(10, dtype=np.complex64)
         self.packet: np.ndarray = None
         self.carryover: int = None
-        self.run = True
+        self.run: bool = True
 
-    def __prime_packet_detect(self) -> None:
-        print("Preparing packet_detect")
-        hdf5 = HDF5Handler()
-        primer_signals = list()
-        primer_signals.append(hdf5.get_signal("priming_signals", "signal0"))
-        primer_signals.append(hdf5.get_signal("priming_signals", "signal1"))
-        primer_signals.append(hdf5.get_signal("priming_signals", "signal2"))
-        primer_signals.append(hdf5.get_signal("priming_signals", "signal3"))
-        # Runs the jit function with dummy data to compile it before running
-        # real data through it
-        for signal in primer_signals:
-            signal_chunks = np.array_split(signal, 40)
-            for chunk in signal_chunks:
-                self.stream_q.put(chunk)
-        self.stream_q.put("DONE")
-        self.__find_packets(True)
-        # Clean out packet_q of dummy data
-        while True:
-            data = self.packet_q.get()
-            if type(data) == str:
-                if data == "DONE":
-                    break
-        print("packet_detect preped")
-
-    def __find_packets(self, priming: bool = False) -> None:
+    def __find_packets(self) -> None:
         """Decides when a signal is part of a packet."""
-        count = 0
+        count: int = 0
         while self.run:
             count += 1
             # Display heartbeat
             if count > 5000:
                 print("packet_detect still alive")
-                count = 0
-            # Gets the siganl data
+                count: int = 0
+            # Gets the signal data
             signal: np.ndarray = self.stream_q.get()
-            start_time = time()
+            start_time: float = time()
             # Breaks the loop
             if type(signal) == str:
                 self.packet_q.put("DONE")
                 break
-            # Porcesses the signal
+            # Processes the signal
             all_packets, end_of_packet_reached, self.carryover = process_signal(
                 signal,
                 self.threshold,
@@ -296,23 +276,14 @@ class PacketDetect:
             if not all_packets:
                 continue
             if len(all_packets) > 0 and end_of_packet_reached:
-                self.packet = None
-                self.carryover = 0
+                self.packet: np.ndarray = None
+                self.carryover: int = 0
                 self.packet_q.put(all_packets)
             elif len(all_packets) > 0 and not end_of_packet_reached:
-                self.packet = all_packets.pop()
+                self.packet: np.ndarray = all_packets.pop()
                 self.packet_q.put(all_packets)
             # print(f'TIME: {time() - start_time}')
         print("EXITED PACKET_DETECT")
 
     def start_packet_detect(self) -> None:
-        # self.__prime_packet_detect()
         self.__find_packets()
-
-
-if __name__ == "__main__":
-    # q_1 = mp.Queue()
-    # q_2 = mp.Queue()
-    # packet_d = PacketDetect(q_1, 1.6, 500, q_2, 100.0, 1.5)
-    # packet_d.prime_packet_detect()
-    pass

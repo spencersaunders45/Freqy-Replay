@@ -3,8 +3,6 @@
 from tomlkit.toml_file import TOMLFile
 from tomlkit.toml_document import TOMLDocument
 import multiprocessing as mp
-import numpy as np
-import argparse, traceback
 import sys, os
 
 _HOME = os.path.isdir("HOME")
@@ -14,9 +12,7 @@ if os.path.isdir(f"{_HOME}/uhd/install/lib/python3.8/site-packages"):
     UHD = f"{_HOME}/uhd/install/lib/python3.8/site-packages"
     sys.path.insert(0, UHD)
 
-from helper_functions.uhd_interface import SDR
 from helper_functions.hdf5_handler import HDF5Handler
-
 from monitor.monitor import Monitor
 from attack.attack import Attack
 
@@ -52,30 +48,39 @@ class FreqyReplay:
         self._monitor.launch()
 
     def display_all_files(self):
+        """ Displays a list of all .hdf5 files """
         self.hdf5.display_all_files()
 
     def view_file_meta_data(self, file_name: str):
+        """ Displays all datasets/packets of a .hdf5 file along with its
+        metadata.
+        """
         if self.center_freq_filter:
-            center_freq = self.center_freq_filter
+            center_freq: float = self.center_freq_filter
         else:
             center_freq = None
+        
         if self.sample_rate_filter:
-            sample_rate = self.sample_rate_filter
+            sample_rate: float = self.sample_rate_filter
         else:
             sample_rate = None
+        
         if self.seconds:
-            seconds = self.seconds
+            seconds: float = self.seconds
         else:
             seconds = None
+        
         if self.byte_size:
-            bytes_size = self.byte_size
+            bytes_size: int = self.byte_size
         else:
             bytes_size = None
+        
         self.hdf5.display_metadata(
             file_name, bytes_size, seconds, center_freq, sample_rate
         )
 
     def plot_signal(self, file_name: str, dataset: str):
+        """ Plots a saved dataset/packet """
         self.hdf5.plot_signal(file_name, dataset)
 
 

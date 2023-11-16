@@ -17,15 +17,7 @@ class Attack:
     hdf5: HDF5Handler = HDF5Handler()
 
     def __init__(self):
-        """Controls the replay attack.
-
-        Parameters:
-            interval (float): The time to wait between each TX
-
-            packet (np.ndarray): The packet to be replayed.
-
-            sdr (SDR): The interface with the SDR.
-        """
+        """ Controls the replay attack. """
         self.toml_radio: dict = self.settings.get("RADIO")
         self.toml_attack: dict = self.settings.get("ATTACK")
         # RADIO
@@ -41,11 +33,11 @@ class Attack:
         self.interval: float = self.toml_attack["interval"]
 
     def replay(self):
-        """Replays a captured packet."""
-        count = 0
-        heartbeat = 0
-        self.sdr = SDR(self.sample_rate, self.center_freq, self.tx_gain, self.rx_gain)
-        self.packet = self.hdf5.get_signal(self.file, self.dataset)
+        """ Replays a captured packet. """
+        count: int = 0
+        heartbeat: int = 0
+        self.sdr: SDR = SDR(self.sample_rate, self.center_freq, self.tx_gain, self.rx_gain)
+        self.packet: np.ndarray = self.hdf5.get_signal(self.file, self.dataset)
         print("STARTING REPLAY ATTACK")
         while True:
             self.sdr.tx_data(self.packet)

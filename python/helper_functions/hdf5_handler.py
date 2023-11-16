@@ -23,7 +23,7 @@ TODO: Add method that allows you to see all the hdf5 files
 
 
 class HDF5Handler:
-    def __init__(self):
+    def __init__(self) -> None:
         """Handles the saving and retrieving of captured signals"""
         pass
 
@@ -39,16 +39,20 @@ class HDF5Handler:
     ) -> None:
         """Saves captured signals into a hdf5 file.
 
-        IMPORTANT: make sure to open file first with open_file method.
-
         Arguments:
             signal (np.ndarray): The captured signal.
-
-            file_name (str): The name of the file. (There is no need to include the file extension)
-
-            signal_size (float):
-
-            frequency (float):
+            
+            signal_size (float): The size of the signal in bytes.
+            
+            frequency (float): The center frequency the SDR is running.
+            
+            packet_length_of_time (float): The size of the packet in time (seconds).
+            
+            threshold (float): The threshold the packet was captured on.
+            
+            sample_rate (float): The sample_rate the SDR is running.
+            
+            file_name (str): The name of the file the packet should be saved to.
         """
         try:
             create_counter: bool = False
@@ -61,9 +65,9 @@ class HDF5Handler:
                 temp = f.create_dataset("counter", (1,), dtype="i")
                 temp[0] = 0
             # Create a dataset and add it to the HDF5 file
-            counter = f["counter"]
+            counter: Dataset = f["counter"]
             dataset: Dataset = f.create_dataset(f"signal{counter[0]}", data=signal)
-            counter[0] = counter[0] + 1
+            counter[0]: int = counter[0] + 1
             # Add metadata to the dataset
             dataset.attrs.create("date_captured", date.today().strftime("%d-%b-%Y"))
             dataset.attrs.create(
@@ -93,7 +97,7 @@ class HDF5Handler:
         """
         try:
             f: Group = h5py.File(f"{SIGNALS_DIR}{file_name}.hdf5", "r")
-            signal = f[dataset][:]
+            signal: np.ndarray = f[dataset][:]
             f.close()
             return signal
         except Exception as e:
@@ -102,11 +106,12 @@ class HDF5Handler:
             raise
 
     def plot_signal(self, file_name: str, dataset: str) -> None:
+        """ Plots a captured signal """
         f: Group = h5py.File(f"{SIGNALS_DIR}{file_name}", "r")
-        file_data = f[dataset]
-        signal = file_data[:]
-        threshold = file_data.attrs["threshold"]
-        sample_rate = file_data.attrs["sample_rate"]
+        file_data: Dataset = f[dataset]
+        signal: np.ndarray = file_data[:]
+        threshold: float = file_data.attrs["threshold"]
+        sample_rate: float = file_data.attrs["sample_rate"]
         f.close()
         plot_signal(signal, sample_rate, threshold)
 
@@ -117,7 +122,23 @@ class HDF5Handler:
         seconds: float,
         center_freq: float,
         sample_rate: float,
-    ):
+    ) -> bool:
+        """ Indicates if a packet should be filtered out or not.
+        
+        Arguments:
+            dataset (dict): The dict containing the metadata of the packet.
+            
+            byte_size (int): The minimum size the bytes should be.
+            
+            seconds (float): The minimum time the packet should be.
+            
+            center_frequency (float): The required center_frequency of the packet.
+            
+            sample_rate (float): The required sample_rate of the packet.
+            
+        Returns:
+            bool: Indicates if the packet should be kept.
+        """
         if byte_size:
             if dataset["signal_size_bytes"] >= byte_size:
                 return True
@@ -144,15 +165,23 @@ class HDF5Handler:
 
         Arguments:
             file_name (str): The name of the HDF5 file.
+            
+            byte_size (int): The minimum size the bytes should be.
+            
+            seconds (float): The minimum time the packet should be.
+            
+            center_frequency (float): The required center_frequency of the packet.
+            
+            sample_rate (float): The required sample_rate of the packet.
         """
         # Get all the dataset data from the file
         f: Group = h5py.File(f"{SIGNALS_DIR}{file_name}", "r")
-        dict_dataset = dict()
+        dict_dataset: dict = dict()
         for key in f.keys():
             dataset: Dataset = f[key]
             if key == "counter":
                 continue
-            dict_dataset[key] = dict()
+            dict_dataset[key]: dict = dict()
             for name, value in dataset.attrs.items():
                 dict_dataset[key][name] = value
         f.close()
@@ -175,8 +204,8 @@ class HDF5Handler:
 
     def display_all_files(self) -> None:
         """Displays all HDF5 files and their metadata"""
-        path = f"{PYTHON_DIR}/captured_signals/"
-        file_list = os.listdir(path)
+        path: str = f"{PYTHON_DIR}/captured_signals/"
+        file_list: list = os.listdir(path)
         for file in file_list:
             if not (".hdf5" in file):
                 continue
@@ -189,21 +218,20 @@ class HDF5Handler:
         Arguments:
             file_name (str): The name of the file to be examined.
         """
-        f = h5py.File(f"{SIGNALS_DIR}{file_name}.hdf5", "r")
+        f: h5py.File = h5py.File(f"{SIGNALS_DIR}{file_name}.hdf5", "r")
         print(f"{file_name}.hdf5")
         for key in f.keys():
             print(f"\t{key}")
 
-    def get_all_files(self):
-        """Returns a list of all the file names in the signals folder."""
-        all_files = os.listdir(f"{SIGNALS_DIR}")
-        file_names = list()
+    def get_all_files(self) -> list[str]:
+        """ Gets a list of all .hdf5 file in the captured_signals dir
+        
+        Returns:
+            list[str]: A list of file names.
+        """
+        all_files: list = os.listdir(f"{SIGNALS_DIR}")
+        file_names: list = list()
         for file in all_files:
             if ".hdf5" in file:
                 file_names.append(file)
         return all_files
-
-
-if __name__ == "__main__":
-    hdf5_handler = HDF5Handler()
-    hdf5_handler.plot_signal("testy", "signal97")

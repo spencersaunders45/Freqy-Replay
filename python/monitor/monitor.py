@@ -1,7 +1,6 @@
 from tomlkit.toml_file import TOMLFile
 from tomlkit.toml_document import TOMLDocument
 import multiprocessing as mp
-import threading as th
 from time import sleep
 import numpy as np
 import argparse, traceback
@@ -24,13 +23,7 @@ from helper_functions.plot_signal import plot_signal
 class Monitor:
     # TODO: Add parameter to add a signal to the queue to stop the process
     def __init__(self):
-        """Monitors the airwaves for a target frequency
-
-        Arguments:
-            sdr (SDR): A SDR class to interface with the SDR.
-
-            stream_q (mp.Queue): A shared queue to feed packet_detect signals.
-        """
+        """ Monitors the airwaves for a target frequency """
         self.hdf5: HDF5Handler = HDF5Handler()
         self.settings: TOMLDocument = TOMLFile(TOML_FILE).read()
         # TOML settings
@@ -53,8 +46,8 @@ class Monitor:
         self.max_loops: int = self.toml_monitor["max_loops"]
 
         # Queues
-        self.stream_q = mp.Queue(self.queue_size)
-        self.packet_queue = mp.Queue(self.queue_size)
+        self.stream_q: mp.Queue = mp.Queue(self.queue_size)
+        self.packet_queue: mp.Queue = mp.Queue(self.queue_size)
         # Signal done
         self.keep_going: bool = True
 
@@ -66,7 +59,7 @@ class Monitor:
                 break
 
     def __sigint_handler(self, sig_num, frame):
-        self.keep_going = False
+        self.keep_going: bool = False
         sleep(.05)
         self.__empty_q()
         self.stream_q.put("DONE", timeout=.05)
@@ -94,37 +87,37 @@ class Monitor:
             self.sample_rate,
             self.threshold,
         )
-        self.packet_detect_p = mp.Process(target=packet_detect.start_packet_detect)
-        self.packet_saver_p = mp.Process(target=packet_saver.start)
+        self.packet_detect_p: mp.Process = mp.Process(target=packet_detect.start_packet_detect)
+        self.packet_saver_p: mp.Process = mp.Process(target=packet_saver.start)
         self.packet_detect_p.start()
         self.packet_saver_p.start()
         self.__stream_rx_data()
 
     def view_signals(self) -> None:
-        self.sdr = SDR(self.sample_rate, self.center_freq, self.tx_gain, self.rx_gain)
-        signals = list()
+        self.sdr: SDR = SDR(self.sample_rate, self.center_freq, self.tx_gain, self.rx_gain)
+        signals: list = list()
         for _ in range(self.samples_to_collect):
-            data = self.sdr.rx_data()
+            data: np.ndarray = self.sdr.rx_data()
             signals.append(data)
         # Put the signal together
-        big_signal = np.zeros(10)
+        big_signal: np.ndarray = np.zeros(10)
         for signal in signals:
-            signal = signal.ravel()
-            signal = np.trim_zeros(signal)
+            signal: np.ndarray = signal.ravel()
+            signal: np.ndarray = np.trim_zeros(signal)
             if big_signal.all():
-                big_signal = signal
+                big_signal: np.ndarray = signal
             else:
-                big_signal = np.concatenate((big_signal, signal))
+                big_signal: np.ndarray = np.concatenate((big_signal, signal))
         plot_signal(big_signal, self.sample_rate, self.threshold)
 
     def __stream_rx_data(self) -> None:
         """Streams signals captured from the SDR"""
         self.sdr = SDR(self.sample_rate, self.center_freq, self.tx_gain, self.rx_gain)
         print("SDR finished setup")
-        heartbeat = 0
+        heartbeat: int = 0
         kill_count: int = 0
         while self.keep_going:
-            data = self.sdr.rx_data()
+            data: np.ndarray = self.sdr.rx_data()
             # Waits for queue to empty if it fills
             if self.stream_q.full():
                 print("stream_q full")
@@ -136,7 +129,7 @@ class Monitor:
             heartbeat += 1
             # Displays a heartbeat
             if heartbeat > 5000:
-                heartbeat = 0
+                heartbeat: int = 0
                 print("SDR still alive")
             # Kills if max_loop is set
             if self.max_loops:

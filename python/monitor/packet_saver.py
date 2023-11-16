@@ -33,24 +33,25 @@ class PacketSaver:
 
             packet_q (mp.Queue): A shared queue that holds the completed packets to be saved.
         """
-        self.file_name = file_name
-        self.packet_q = packet_q
-        self.hdf5 = hdf5
-        self.center_frequency = center_frequency
-        self.sample_rate = sample_rate
-        self.threshold = threshold
-        self.dataset_count = 0
-        self.run = True
+        self.file_name: str = file_name
+        self.packet_q: mp.Queue = packet_q
+        self.hdf5: HDF5Handler = hdf5
+        self.center_frequency: float = center_frequency
+        self.sample_rate: float = sample_rate
+        self.threshold: float = threshold
+        self.dataset_count: int = 0
+        self.run: bool = True
 
     def start(self):
         while self.run:
-            all_packets = self.packet_q.get()
+            all_packets: list = self.packet_q.get()
             if type(all_packets) == str:
                 if all_packets == "DONE":
                     break
                 else:
                     continue
             for packet in all_packets:
+                # TODO: Add parameter to pick what sizes get thrown out
                 if packet.size < 5:
                     continue
                 packet_length_in_time = packet.size / self.sample_rate
