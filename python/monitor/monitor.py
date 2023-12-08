@@ -63,8 +63,20 @@ class Monitor:
         sleep(.05)
         self.__empty_q()
         self.stream_q.put("DONE", timeout=.05)
-        self.packet_detect_p.kill()
-        self.packet_saver_p.kill()
+        
+        try:
+            print('killing packet_detect')
+            self.packet_detect_p.kill()
+            print('packet_detect killed')
+        except AttributeError:
+            print('packet_detect process already killed')
+            
+        try:
+            print('killing packet_saver')
+            self.packet_saver_p.kill()
+            print('packet_saver killed')
+        except AttributeError:
+            print('packet_saver process already killed')
         exit(0)
 
     def launch(self) -> None:

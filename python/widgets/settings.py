@@ -27,7 +27,7 @@ class Settings:
         self.__populate_toml_data()
         self.__add_start_stop_buttons()
     
-    def __terminat_processes(self) -> None:
+    def __terminate_processes(self) -> None:
         """ Sends the Ctrl + c command to a running python process. """
         # Send the kill signal to the process
         self.replay_process.send_signal(signal.SIGINT)
@@ -93,13 +93,13 @@ class Settings:
     
     def __stop_monitor(self) -> None:
         """ Stops the monitor process and updates the buttons """
-        self.__terminat_processes()
+        self.__terminate_processes()
         self.monitor_button.config(background='green', foreground='black', text='Start Monitor', command=self.__start_monitor)
         self.attack_button.config(background='green', foreground='black', state='normal')
     
     def __stop_attack(self) -> None:
         """ Stops the monitor process and updates the buttons """
-        self.__terminat_processes()
+        self.__terminate_processes()
         self.attack_button.config(background='green', foreground='black', text='Start Attack', command=self.__start_attack)
         self.monitor_button.config(background='green', foreground='black', state='normal')
     

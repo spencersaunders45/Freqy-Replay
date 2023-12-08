@@ -92,7 +92,6 @@ def process_signal(
     # If there is no packet and there is no cutoff found
     if packet == None:
         if cutoff_list.size == 0:
-            # print("A")
             if last_signal.any():
                 signal = np.concatenate((last_signal, signal))
             if threshold_list[-1] > packet_slack:
@@ -111,7 +110,6 @@ def process_signal(
             cutoff_list_value: int = cutoff_list[i]
             # Find the first packet
             if i == 0:
-                # print("B") #! WORKING
                 all_packets.append(
                     signal[
                         threshold_list[0]
@@ -120,7 +118,6 @@ def process_signal(
                 )
             # Find the last packet
             elif i == cutoff_list.size:
-                # print("C") #! WORKING
                 all_packets.append(
                     signal[
                         threshold_list[cutoff_list[-1]]
@@ -130,7 +127,6 @@ def process_signal(
                 )
             # Find all other packets
             else:
-                # print("D") #! WORKING
                 last_cutoff_list_value: int = cutoff_list[i - 1]
                 all_packets.append(
                     signal[
@@ -143,7 +139,6 @@ def process_signal(
         if cutoff_list.size == 0 and end_of_packet_reached:
             if last_signal.any():
                 signal = np.concatenate((last_signal, signal))
-            # print("E")
             if threshold_list[-1] > packet_slack:
                 return (
                     [signal[threshold_list[0] : threshold_list[-1] + packet_slack]],
@@ -159,13 +154,11 @@ def process_signal(
                     new_carryover,
                 )
         elif cutoff_list.size == 0 and not end_of_packet_reached:
-            # print("F") #! WORKING
             joined_signal: np.ndarray = np.concatenate((packet, signal))
             return ([joined_signal], end_of_packet_reached, new_carryover)
         # Check if the carryover packet ended or if it continues into this signal
         packet_finished: bool = False
         if (threshold_list[0] + carryover) > cutoff:
-            # print("G")
             all_packets.append(packet)
             packet_finished = True
         # Find all packets
@@ -175,20 +168,17 @@ def process_signal(
             cutoff_list_value: int = cutoff_list[i]
             # Find the first packet
             if i == 0 and not packet_finished:
-                # print("H")
                 all_packets.append(
                     np.concatenate(
                         (packet, signal[: threshold_list[cutoff_list_value]])
                     )
                 )
             elif i == 0 and packet_finished:
-                # print("I")
                 all_packets.append(
                     signal[threshold_list[0] : threshold_list[cutoff_list_value]]
                 )
             # Find the last packet
             elif i == cutoff_list.size:
-                # print("J")
                 all_packets.append(
                     signal[
                         threshold_list[cutoff_list[-1]]
@@ -198,7 +188,6 @@ def process_signal(
                 )
             # Find all other packets
             else:
-                # print("K")
                 last_cutoff_list_value: int = cutoff_list[i - 1]
                 all_packets.append(
                     signal[
@@ -257,7 +246,6 @@ class PacketDetect:
                 count: int = 0
             # Gets the signal data
             signal: np.ndarray = self.stream_q.get()
-            start_time: float = time()
             # Breaks the loop
             if type(signal) == str:
                 self.packet_q.put("DONE")
@@ -282,7 +270,6 @@ class PacketDetect:
             elif len(all_packets) > 0 and not end_of_packet_reached:
                 self.packet: np.ndarray = all_packets.pop()
                 self.packet_q.put(all_packets)
-            # print(f'TIME: {time() - start_time}')
         print("EXITED PACKET_DETECT")
 
     def start_packet_detect(self) -> None:
